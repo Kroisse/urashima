@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
 use crate::capsule::Context;
-use crate::environment::Value;
+use crate::environment::{Environment, Symbol, Value};
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 use crate::statement::Statement;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub enum Expression {
     // Atomic expressions
     Literal(Value),
@@ -15,8 +15,21 @@ pub enum Expression {
         index: usize,
     },
     Record(),
+    Fn {
+        parameters: Vec<Symbol>,
+        body: BlockExpression,
+    },
 
     Operator(Box<OperatorExpression>),
+    FunctionCall {
+        callee: Box<Expression>,
+        arguments: Vec<Expression>,
+    },
+    MethodInvocation {
+        object: Box<Expression>,
+        method: String,
+        arguments: Vec<Expression>,
+    },
 
     If {
         cond: Box<Expression>,
@@ -36,7 +49,12 @@ impl Evaluate for Expression {
             Literal(val) => Ok(val.clone()),
             Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
             Record(..) => Err(ErrorKind::Unimplemented.into()),
+            Fn { parameters, body } => expr_fn(ctx, parameters, body),
+
             Operator(op) => op.eval(ctx),
+            FunctionCall { callee, arguments } => eval_fn_call(ctx, &callee, &arguments),
+            MethodInvocation { .. } => Err(ErrorKind::Unimplemented.into()),
+
             If {
                 cond,
                 then_blk,
@@ -48,7 +66,20 @@ impl Evaluate for Expression {
     }
 }
 
-#[derive(Debug, Deserialize)]
+fn expr_fn(
+    _ctx: &mut Context<'_>,
+    parameters: &[Symbol],
+    body: &BlockExpression,
+) -> Fallible<Value> {
+    let closure = Environment::default();
+    Ok(Value::Fn {
+        parameters: parameters.to_vec(),
+        closure,
+        body: body.clone(),
+    })
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub enum OperatorExpression {
     #[serde(rename = "+")]
     Addition(Expression, Expression),
@@ -90,6 +121,33 @@ impl Evaluate for OperatorExpression {
     }
 }
 
+fn eval_fn_call(
+    ctx: &mut Context<'_>,
+    callee: &Expression,
+    arguments: &[Expression],
+) -> Fallible<Value> {
+    let callee = callee.eval(ctx)?;
+    if let Value::Fn {
+        parameters,
+        body,
+        closure,
+    } = callee
+    {
+        let args: Vec<_> = arguments
+            .iter()
+            .map(|arg| arg.eval(ctx))
+            .collect::<Result<_, _>>()?;
+        let mut g = ctx.push();
+        g.load(&closure);
+        for (name, val) in parameters.into_iter().zip(args) {
+            g.bind(name, val);
+        }
+        Ok(body.eval_in_context(&mut g)?)
+    } else {
+        Err(ErrorKind::Type.into())
+    }
+}
+
 fn eval_if(
     ctx: &mut Context<'_>,
     cond: &Expression,
@@ -110,9 +168,8 @@ fn eval_if(
 }
 
 fn eval_loop(ctx: &mut Context<'_>, blk: &BlockExpression) -> Fallible<Value> {
-    let mut g = ctx.push();
     loop {
-        if let Err(e) = blk.eval(&mut g) {
+        if let Err(e) = blk.eval(ctx) {
             match e.kind() {
                 ErrorKind::Break => break,
                 ErrorKind::Continue => continue,
@@ -125,10 +182,19 @@ fn eval_loop(ctx: &mut Context<'_>, blk: &BlockExpression) -> Fallible<Value> {
     Ok(Value::Unit)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct BlockExpression {
     statements: Vec<Statement>,
     returns: Box<Expression>,
+}
+
+impl BlockExpression {
+    fn eval_in_context(&self, ctx: &mut Context<'_>) -> Fallible<Value> {
+        for stmt in &self.statements {
+            stmt.eval(ctx)?;
+        }
+        self.returns.eval(ctx)
+    }
 }
 
 impl Evaluate for BlockExpression {
@@ -136,10 +202,7 @@ impl Evaluate for BlockExpression {
 
     fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
         let mut g = ctx.push();
-        for stmt in &self.statements {
-            stmt.eval(&mut g)?;
-        }
-        self.returns.eval(&mut g)
+        self.eval_in_context(&mut g)
     }
 }
 
@@ -162,7 +225,7 @@ mod test {
 
         let mut capsule = Capsule::interactive();
         let value = capsule.eval(&expr)?;
-        assert_eq!(value, Value::Int(3));
+        assert_eq!(value.to_int(), Some(3));
 
         Ok(())
     }
@@ -178,7 +241,7 @@ mod test {
 
         let mut capsule = Capsule::interactive();
         let value = capsule.eval(&expr)?;
-        assert_eq!(value, Value::Int(-1));
+        assert_eq!(value.to_int(), Some(-1));
 
         Ok(())
     }
@@ -196,7 +259,7 @@ mod test {
 
         let mut capsule = Capsule::interactive();
         let value = capsule.eval(&expr)?;
-        assert_eq!(value, Value::Int(42));
+        assert_eq!(value.to_int(), Some(42));
 
         Ok(())
     }
@@ -221,12 +284,120 @@ mod test {
 
         let expr: Expression = from_value(code.clone())?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value, Value::Int(1));
+        assert_eq!(value.to_int(), Some(1));
 
         code["If"]["cond"]["Literal"]["bool"] = serde_json::Value::Bool(false);
         let expr: Expression = from_value(code)?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value, Value::Int(2));
+        assert_eq!(value.to_int(), Some(2));
+
+        Ok(())
+    }
+
+    #[test]
+    fn eval_fn() -> Fallible<()> {
+        let mut capsule = Capsule::interactive();
+
+        let decl: Statement = from_value(json!({
+            "Binding": ["answer_to_the_ultimate_question_of_life_the_universe_and_everything", {
+                "Fn": {
+                    "parameters": [],
+                    "body": {
+                        "statements": [],
+                        "returns": {"Literal": {"int": 42}},
+                    }
+                }
+            }]
+        }))?;
+        capsule.eval(&decl)?;
+
+        let code = json!({
+            "FunctionCall": {
+                "callee": {"Binding": {"depth": 0, "index": 0}},
+                "arguments": [],
+            },
+        });
+
+        let expr: Expression = from_value(code)?;
+        let value = capsule.eval(&expr)?;
+        assert_eq!(value.to_int(), Some(42));
+
+        Ok(())
+    }
+
+    #[test]
+    fn eval_fn_args() -> Fallible<()> {
+        let mut capsule = Capsule::interactive();
+
+        let decl: Statement = from_value(json!({
+            "Binding": ["increase", {
+                "Fn": {
+                    "parameters": ["n"],
+                    "body": {
+                        "statements": [],
+                        "returns": {"Operator": {"+": [
+                            {"Binding": {"depth": 0, "index": 0}},
+                            {"Literal": {"int": 1}},
+                        ]}},
+                    }
+                }
+            }]
+        }))?;
+        capsule.eval(&decl)?;
+
+        let code = json!({
+            "FunctionCall": {
+                "callee": {"Binding": {"depth": 0, "index": 0}},
+                "arguments": [{"Literal": {"int": 1}}],
+            },
+        });
+
+        let expr: Expression = from_value(code)?;
+        let value = capsule.eval(&expr)?;
+        assert_eq!(value.to_int(), Some(2));
+
+        Ok(())
+    }
+
+    #[test]
+    fn eval_fn_args_with_closed_bindings() -> Fallible<()> {
+        let mut capsule = Capsule::interactive();
+
+        let stmts: Vec<Statement> = from_value(json!([
+            {
+                "Binding": ["ANSWER", {
+                    "Literal": {"int": 42}
+                }]
+            },
+            {
+                "Binding": ["increase", {
+                    "Fn": {
+                        "parameters": ["n"],
+                        "body": {
+                            "statements": [],
+                            "returns": {"Operator": {"+": [
+                                {"Binding": {"depth": 0, "index": 0}},
+                                {"Binding": {"depth": 1, "index": 0}},
+                            ]}},
+                        }
+                    }
+                }]
+            },
+        ]))?;
+        for s in &stmts {
+            capsule.eval(s)?;
+        }
+
+        let code = json!({
+            "FunctionCall": {
+                "callee": {"Binding": {"depth": 0, "index": 1}},
+                "arguments": [{"Literal": {"int": 1}}],
+            },
+        });
+
+        let expr: Expression = from_value(code)?;
+        let value = capsule.eval(&expr)?;
+        assert_eq!(value.to_int(), Some(43));
 
         Ok(())
     }

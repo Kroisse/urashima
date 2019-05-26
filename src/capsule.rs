@@ -63,6 +63,15 @@ impl<'a, 'b> ContextGuard<'a, 'b> {
         ctx.capsule.environments.push(Environment::default());
         ContextGuard(ctx)
     }
+
+    pub(crate) fn load(&mut self, env: &Environment) {
+        self.0
+            .capsule
+            .environments
+            .last_mut()
+            .expect("no environment")
+            .clone_from(env);
+    }
 }
 
 impl Drop for ContextGuard<'_, '_> {

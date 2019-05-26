@@ -6,7 +6,7 @@ use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 use crate::expr::Expression;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub enum Statement {
     Binding(Symbol, Expression),
     Return(Expression),
@@ -39,7 +39,6 @@ mod test {
 
     use super::*;
     use crate::capsule::Capsule;
-    use crate::environment::Value;
 
     #[test]
     fn eval_bind_literal() -> Fallible<()> {
@@ -50,6 +49,7 @@ mod test {
         let mut capsule = Capsule::interactive();
         capsule.eval(&stmt)?;
         let env = capsule.environments.last().unwrap();
+        assert_eq!(env.values[0].to_int(), Some(42));
         assert_eq!(&env.names[0], "foo");
 
         Ok(())

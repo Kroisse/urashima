@@ -52,10 +52,10 @@ pub(crate) enum ErrorKind {
     #[fail(display = "type error")]
     Type,
 
-    #[fail(display = "break")]
+    #[fail(display = "unexpected break statement")]
     Break,
 
-    #[fail(display = "continue")]
+    #[fail(display = "unexpected continue statement")]
     Continue,
 }
 
