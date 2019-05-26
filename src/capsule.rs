@@ -1,7 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::environment::{Environment, Value};
-
+use crate::environment::{Environment, Symbol, Value};
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
@@ -37,7 +36,7 @@ impl<'a> Context<'a> {
         ContextGuard::new(self)
     }
 
-    pub(crate) fn bind(&mut self, name: impl Into<String>, value: Value) {
+    pub(crate) fn bind(&mut self, name: Symbol, value: Value) {
         let env = self
             .capsule
             .environments

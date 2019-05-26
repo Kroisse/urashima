@@ -2,7 +2,9 @@ use std::rc::Rc;
 
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub type Symbol = String;
+
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Value {
     Unit,
@@ -31,12 +33,12 @@ impl From<i64> for Value {
 #[derive(Default)]
 pub struct Environment {
     pub(crate) values: Vec<Value>,
-    pub(crate) names: Vec<String>,
+    pub(crate) names: Vec<Symbol>,
 }
 
 impl Environment {
-    pub(crate) fn bind(&mut self, name: impl Into<String>, value: Value) {
-        self.names.push(name.into());
+    pub(crate) fn bind(&mut self, name: Symbol, value: Value) {
+        self.names.push(name);
         self.values.push(value);
     }
 }

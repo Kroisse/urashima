@@ -1,13 +1,14 @@
 use serde::Deserialize;
 
 use crate::capsule::Context;
+use crate::environment::Symbol;
 use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 use crate::expr::Expression;
 
 #[derive(Debug, Deserialize)]
 pub enum Statement {
-    Binding(String, Expression),
+    Binding(Symbol, Expression),
     Return(Expression),
     Break,
     Continue,
@@ -21,7 +22,7 @@ impl Evaluate for Statement {
         match self {
             Statement::Binding(name, expr) => {
                 let val = expr.eval(ctx)?;
-                ctx.bind(name.as_str(), val);
+                ctx.bind(name.clone(), val);
                 Ok(())
             }
             Statement::Break => Err(Error::loop_break()),
@@ -49,8 +50,7 @@ mod test {
         let mut capsule = Capsule::interactive();
         capsule.eval(&stmt)?;
         let env = capsule.environments.last().unwrap();
-        assert_eq!(env.values[0], Value::Int(42));
-        assert_eq!(env.names[0], "foo");
+        assert_eq!(&env.names[0], "foo");
 
         Ok(())
     }
