@@ -9,8 +9,8 @@ use crate::expr::Expression;
 pub enum Statement {
     Binding(String, Expression),
     Return(Expression),
-    Continue,
     Break,
+    Continue,
     Print(Expression), // for debug only
 }
 
@@ -24,6 +24,8 @@ impl Evaluate for Statement {
                 ctx.bind(name.as_str(), val);
                 Ok(())
             }
+            Statement::Break => Err(Error::loop_break()),
+            Statement::Continue => Err(Error::loop_continue()),
             _ => Err(Error::unimplemented()),
         }
     }

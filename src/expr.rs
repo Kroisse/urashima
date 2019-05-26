@@ -10,12 +10,20 @@ use crate::statement::Statement;
 pub enum Expression {
     // Atomic expressions
     Literal(Value),
-    Binding { depth: usize, index: usize },
+    Binding {
+        depth: usize,
+        index: usize,
+    },
     Record(),
 
     Operator(Box<OperatorExpression>),
 
-    ControlFlow(Box<ControlFlowExpression>),
+    If {
+        cond: Box<Expression>,
+        then_blk: BlockExpression,
+        else_blk: Option<BlockExpression>,
+    },
+    Loop(BlockExpression),
     Block(BlockExpression),
 }
 
@@ -23,11 +31,19 @@ impl Evaluate for Expression {
     type Value = Value;
 
     fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+        use Expression::*;
         match self {
-            Expression::Literal(val) => Ok(val.clone()),
-            Expression::Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
-            Expression::Operator(op) => op.eval(ctx),
-            _ => Err(ErrorKind::Unimplemented.into()),
+            Literal(val) => Ok(val.clone()),
+            Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
+            Record(..) => Err(ErrorKind::Unimplemented.into()),
+            Operator(op) => op.eval(ctx),
+            If {
+                cond,
+                then_blk,
+                else_blk,
+            } => eval_if(ctx, cond, then_blk, else_blk.as_ref()),
+            Loop(blk) => eval_loop(ctx, blk),
+            Block(blk) => blk.eval(ctx),
         }
     }
 }
@@ -74,10 +90,39 @@ impl Evaluate for OperatorExpression {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub enum ControlFlowExpression {
-    If(Expression, BlockExpression, BlockExpression),
-    Loop(BlockExpression),
+fn eval_if(
+    ctx: &mut Context<'_>,
+    cond: &Expression,
+    then_blk: &BlockExpression,
+    else_blk: Option<&BlockExpression>,
+) -> Fallible<Value> {
+    if let Value::Bool(c) = cond.eval(ctx)? {
+        if c {
+            then_blk.eval(&mut ctx.push())
+        } else if let Some(e) = else_blk {
+            e.eval(&mut ctx.push())
+        } else {
+            Ok(Value::Unit)
+        }
+    } else {
+        Err(ErrorKind::Type.into())
+    }
+}
+
+fn eval_loop(ctx: &mut Context<'_>, blk: &BlockExpression) -> Fallible<Value> {
+    let mut g = ctx.push();
+    loop {
+        if let Err(e) = blk.eval(&mut g) {
+            match e.kind() {
+                ErrorKind::Break => break,
+                ErrorKind::Continue => continue,
+                _ => {
+                    return Err(e);
+                }
+            }
+        }
+    }
+    Ok(Value::Unit)
 }
 
 #[derive(Debug, Deserialize)]
@@ -134,6 +179,54 @@ mod test {
         let mut capsule = Capsule::interactive();
         let value = capsule.eval(&expr)?;
         assert_eq!(value, Value::Int(-1));
+
+        Ok(())
+    }
+
+    #[test]
+    fn eval_block() -> Fallible<()> {
+        let expr: Expression = from_value(json!({
+            "Block": {
+                "statements": [
+                    {"Binding": ["foo", {"Literal": {"int": 42}}]},
+                ],
+                "returns": {"Binding": {"depth": 0, "index": 0}},
+            },
+        }))?;
+
+        let mut capsule = Capsule::interactive();
+        let value = capsule.eval(&expr)?;
+        assert_eq!(value, Value::Int(42));
+
+        Ok(())
+    }
+
+    #[test]
+    fn eval_if() -> Fallible<()> {
+        let mut code = json!({
+            "If": {
+                "cond": {"Literal": {"bool": true}},
+                "then_blk": {
+                    "statements": [],
+                    "returns": {"Literal": {"int": 1}},
+                },
+                "else_blk": {
+                    "statements": [],
+                    "returns": {"Literal": {"int": 2}},
+                }
+            },
+        });
+
+        let mut capsule = Capsule::interactive();
+
+        let expr: Expression = from_value(code.clone())?;
+        let value = capsule.eval(&expr)?;
+        assert_eq!(value, Value::Int(1));
+
+        code["If"]["cond"]["Literal"]["bool"] = serde_json::Value::Bool(false);
+        let expr: Expression = from_value(code)?;
+        let value = capsule.eval(&expr)?;
+        assert_eq!(value, Value::Int(2));
 
         Ok(())
     }

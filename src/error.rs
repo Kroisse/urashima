@@ -24,8 +24,20 @@ impl fmt::Display for Error {
 }
 
 impl Error {
+    pub(crate) fn kind(&self) -> &ErrorKind {
+        self.inner.get_context()
+    }
+
     pub(crate) fn unimplemented() -> Error {
         ErrorKind::Unimplemented.into()
+    }
+
+    pub(crate) fn loop_break() -> Error {
+        ErrorKind::Break.into()
+    }
+
+    pub(crate) fn loop_continue() -> Error {
+        ErrorKind::Continue.into()
     }
 }
 
@@ -39,6 +51,12 @@ pub(crate) enum ErrorKind {
 
     #[fail(display = "type error")]
     Type,
+
+    #[fail(display = "break")]
+    Break,
+
+    #[fail(display = "continue")]
+    Continue,
 }
 
 impl From<ErrorKind> for Error {
