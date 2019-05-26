@@ -1,0 +1,13 @@
+[package]
+name = "urashima"
+description = "Proof-of-concept Runtime for Naru Programming Language"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1.5"
+serde = { version = "1.0.91", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0.39"
