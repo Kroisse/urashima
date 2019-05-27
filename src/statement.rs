@@ -43,7 +43,7 @@ mod test {
     #[test]
     fn eval_bind_literal() -> Fallible<()> {
         let stmt: Statement = from_value(json!({
-            "Binding": ["foo", {"Literal": {"int": 42}}],
+            "Binding": ["foo", {"Integral": 42}],
         }))?;
 
         let mut capsule = Capsule::interactive();

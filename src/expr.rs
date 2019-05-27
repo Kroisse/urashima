@@ -9,7 +9,9 @@ use crate::statement::Statement;
 #[derive(Clone, Debug, Deserialize)]
 pub enum Expression {
     // Atomic expressions
-    Literal(Value),
+    False,
+    True,
+    Integral(i64),
     Binding {
         depth: usize,
         index: usize,
@@ -46,7 +48,9 @@ impl Evaluate for Expression {
     fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
         use Expression::*;
         match self {
-            Literal(val) => Ok(val.clone()),
+            False => Ok(Value::Bool(false)),
+            True => Ok(Value::Bool(true)),
+            Integral(val) => Ok(Value::from(*val)),
             Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
             Record(..) => Err(ErrorKind::Unimplemented.into()),
             Fn { parameters, body } => expr_fn(ctx, parameters, body),
@@ -218,8 +222,8 @@ mod test {
     fn eval_operator_add() -> Fallible<()> {
         let expr: Expression = from_value(json!({
             "Operator": {"+": [
-                {"Literal": {"int": 1}},
-                {"Literal": {"int": 2}},
+                {"Integral": 1},
+                {"Integral": 2},
             ]},
         }))?;
 
@@ -234,8 +238,8 @@ mod test {
     fn eval_operator_sub() -> Fallible<()> {
         let expr: Expression = from_value(json!({
             "Operator": {"-": [
-                {"Literal": {"int": 1}},
-                {"Literal": {"int": 2}},
+                {"Integral": 1},
+                {"Integral": 2},
             ]},
         }))?;
 
@@ -251,7 +255,7 @@ mod test {
         let expr: Expression = from_value(json!({
             "Block": {
                 "statements": [
-                    {"Binding": ["foo", {"Literal": {"int": 42}}]},
+                    {"Binding": ["foo", {"Integral": 42}]},
                 ],
                 "returns": {"Binding": {"depth": 0, "index": 0}},
             },
@@ -268,14 +272,14 @@ mod test {
     fn eval_if() -> Fallible<()> {
         let mut code = json!({
             "If": {
-                "cond": {"Literal": {"bool": true}},
+                "cond": "True",
                 "then_blk": {
                     "statements": [],
-                    "returns": {"Literal": {"int": 1}},
+                    "returns": {"Integral": 1},
                 },
                 "else_blk": {
                     "statements": [],
-                    "returns": {"Literal": {"int": 2}},
+                    "returns": {"Integral": 2},
                 }
             },
         });
@@ -286,7 +290,7 @@ mod test {
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(1));
 
-        code["If"]["cond"]["Literal"]["bool"] = serde_json::Value::Bool(false);
+        code["If"]["cond"] = serde_json::Value::String("False".to_owned());
         let expr: Expression = from_value(code)?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(2));
@@ -304,7 +308,7 @@ mod test {
                     "parameters": [],
                     "body": {
                         "statements": [],
-                        "returns": {"Literal": {"int": 42}},
+                        "returns": {"Integral": 42},
                     }
                 }
             }]
@@ -337,7 +341,7 @@ mod test {
                         "statements": [],
                         "returns": {"Operator": {"+": [
                             {"Binding": {"depth": 0, "index": 0}},
-                            {"Literal": {"int": 1}},
+                            {"Integral": 1},
                         ]}},
                     }
                 }
@@ -348,7 +352,7 @@ mod test {
         let code = json!({
             "FunctionCall": {
                 "callee": {"Binding": {"depth": 0, "index": 0}},
-                "arguments": [{"Literal": {"int": 1}}],
+                "arguments": [{"Integral": 1}],
             },
         });
 
@@ -365,9 +369,7 @@ mod test {
 
         let stmts: Vec<Statement> = from_value(json!([
             {
-                "Binding": ["ANSWER", {
-                    "Literal": {"int": 42}
-                }]
+                "Binding": ["ANSWER", {"Integral": 42}]
             },
             {
                 "Binding": ["increase", {
@@ -391,7 +393,7 @@ mod test {
         let code = json!({
             "FunctionCall": {
                 "callee": {"Binding": {"depth": 0, "index": 1}},
-                "arguments": [{"Literal": {"int": 1}}],
+                "arguments": [{"Integral": 1}],
             },
         });
 
