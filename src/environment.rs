@@ -2,17 +2,21 @@ use std::rc::Rc;
 
 use serde::Deserialize;
 
-use crate::expr::BlockExpression;
+use crate::{
+    data::record::Record,
+    expr::BlockExpression,
+};
 
 pub type Symbol = String;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Value {
-    Unit,
     Bool(bool),
     Int(i64),
     // Nat(u32),
+
+    Record(Record),
 
     #[serde(skip)]
     Fn {
@@ -26,8 +30,20 @@ pub enum Value {
 }
 
 impl Value {
+    pub fn unit() -> Self {
+        Value::Record(Record::default())
+    }
+
     pub fn into_ref(self) -> Value {
         Value::Ref(Rc::new(self))
+    }
+
+    pub fn as_record(&self) -> Option<&Record> {
+        if let Value::Record(val) = self {
+            Some(val)
+        } else {
+            None
+        }
     }
 
     pub fn to_bool(&self) -> Option<bool> {

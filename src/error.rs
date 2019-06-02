@@ -52,6 +52,9 @@ pub(crate) enum ErrorKind {
     #[fail(display = "type error")]
     Type,
 
+    #[fail(display = "value error")]
+    Value,
+
     #[fail(display = "unexpected break statement")]
     Break,
 

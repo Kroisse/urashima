@@ -16,6 +16,7 @@
 #![deny(rust_2018_idioms)]
 #![cfg_attr(test, recursion_limit = "128")]
 
+mod data;
 mod environment;
 mod eval;
 mod expr;

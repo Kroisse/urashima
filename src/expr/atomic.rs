@@ -1,11 +1,14 @@
 use serde::Deserialize;
 
-use crate::capsule::Context;
-use crate::environment::{Environment, Symbol, Value};
-use crate::error::{Error, Fallible};
-use crate::eval::Evaluate;
-use crate::statement::Statement;
 use super::Expression;
+use crate::{
+    capsule::Context,
+    data::record::Key,
+    environment::{Environment, Symbol, Value},
+    error::{ErrorKind, Fallible},
+    eval::Evaluate,
+    statement::Statement,
+};
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum AtomicExpression {
@@ -16,7 +19,7 @@ pub enum AtomicExpression {
         depth: usize,
         index: usize,
     },
-    Record(),
+    Record(Vec<(Key, Expression)>),
     Block(BlockExpression),
     Fn {
         parameters: Vec<Symbol>,
@@ -34,7 +37,7 @@ impl Evaluate for AtomicExpression {
             True => Ok(Value::Bool(true)),
             Integral(val) => Ok(Value::from(*val)),
             Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
-            Record(..) => Err(Error::unimplemented()),
+            Record(exprs) => eval_record(ctx, &exprs),
             Block(blk) => blk.eval(ctx),
             Fn { parameters, body } => expr_fn(ctx, parameters, body),
         }
@@ -65,6 +68,21 @@ impl Evaluate for BlockExpression {
     }
 }
 
+fn eval_record(ctx: &mut Context<'_>, exprs: &[(Key, Expression)]) -> Fallible<Value> {
+    let mut items = Vec::new();
+    let mut keys = Vec::new();
+    for (key, expr) in exprs {
+        let val = expr.eval(ctx)?;
+        if let Err(i) = keys.binary_search(key) {
+            keys.insert(i, key.clone());
+            items.push((key.clone(), val));
+        } else {
+            return Err(ErrorKind::Value.into());
+        }
+    }
+    Ok(Value::Record(items.into_iter().collect()))
+}
+
 fn expr_fn(
     _ctx: &mut Context<'_>,
     parameters: &[Symbol],
@@ -85,6 +103,20 @@ mod test {
 
     use super::*;
     use crate::capsule::Capsule;
+
+    #[test]
+    fn eval_unit_record() -> Fallible<()> {
+        let expr: Expression = from_value(json!({
+            "Record": [],
+        }))?;
+
+        let mut capsule = Capsule::interactive();
+        let value = capsule.eval(&expr)?;
+        let rec = value.as_record().unwrap();
+        assert!(rec.fields.is_empty());
+
+        Ok(())
+    }
 
     #[test]
     fn eval_block() -> Fallible<()> {

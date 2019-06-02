@@ -45,7 +45,7 @@ fn eval_if(
         } else if let Some(e) = else_blk {
             e.eval(&mut ctx.push())
         } else {
-            Ok(Value::Unit)
+            Ok(Value::unit())
         }
     } else {
         Err(ErrorKind::Type.into())
@@ -64,7 +64,7 @@ fn eval_loop(ctx: &mut Context<'_>, blk: &BlockExpression) -> Fallible<Value> {
             }
         }
     }
-    Ok(Value::Unit)
+    Ok(Value::unit())
 }
 
 #[cfg(test)]
