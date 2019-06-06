@@ -11,16 +11,24 @@ pub struct Record {
 
 impl Default for Record {
     fn default() -> Self {
-        Record { fields: Vec::default() }
+        Record {
+            fields: Vec::default(),
+        }
     }
 }
 
 impl FromIterator<(Key, Value)> for Record {
-    fn from_iter<T>(iter: T) -> Self where T: IntoIterator<Item = (Key, Value)> {
-        let fields = iter.into_iter().map(|(k, value)| match k {
-            Key::Index(key) => Field::Index { key, value },
-            Key::Label(key) => Field::Label { key, value },
-        }).collect();
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (Key, Value)>,
+    {
+        let fields = iter
+            .into_iter()
+            .map(|(k, value)| match k {
+                Key::Index(key) => Field::Index { key, value },
+                Key::Label(key) => Field::Label { key, value },
+            })
+            .collect();
         Record { fields }
     }
 }

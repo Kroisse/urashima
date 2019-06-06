@@ -2,10 +2,7 @@ use std::rc::Rc;
 
 use serde::Deserialize;
 
-use crate::{
-    data::record::Record,
-    expr::BlockExpression,
-};
+use crate::{data::record::Record, expr::BlockExpression};
 
 pub type Symbol = String;
 
@@ -15,7 +12,6 @@ pub enum Value {
     Bool(bool),
     Int(i64),
     // Nat(u32),
-
     Record(Record),
 
     #[serde(skip)]
