@@ -2,8 +2,7 @@ use std::rc::Rc;
 
 use serde::Deserialize;
 
-use crate::{environment::Environment, expr::BlockExpression};
-use super::{Symbol, Record};
+use super::{Function, Record};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -15,11 +14,7 @@ pub enum Variant {
     Record(Record),
 
     #[serde(skip)]
-    Fn {
-        parameters: Vec<Symbol>,
-        closure: Environment,
-        body: BlockExpression,
-    },
+    Fn(Function),
 
     #[serde(skip)]
     Ref(Rc<Variant>),
@@ -36,6 +31,14 @@ impl Variant {
 
     pub fn as_record(&self) -> Option<&Record> {
         if let Variant::Record(val) = self {
+            Some(val)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_function(&self) -> Option<&Function> {
+        if let Variant::Fn(val) = self {
             Some(val)
         } else {
             None
@@ -80,5 +83,11 @@ impl From<&str> for Variant {
 impl From<String> for Variant {
     fn from(val: String) -> Self {
         Variant::Str(val)
+    }
+}
+
+impl From<Function> for Variant {
+    fn from(val: Function) -> Self {
+        Variant::Fn(val)
     }
 }

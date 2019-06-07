@@ -1,3 +1,4 @@
+pub mod function;
 pub mod record;
 pub mod variant;
 
@@ -6,9 +7,4 @@ mod internal {
     include!(concat!(env!("OUT_DIR"), "/symbol.rs"));
 }
 
-pub use self::{
-    internal::Symbol,
-    record::Record,
-    variant::Variant,
-};
-
+pub use self::{function::Function, internal::Symbol, record::Record, variant::Variant};

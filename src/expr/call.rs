@@ -44,22 +44,8 @@ fn eval_fn_call(
     arguments: &[Expression],
 ) -> Fallible<Variant> {
     let callee = callee.eval(ctx)?;
-    if let Variant::Fn {
-        parameters,
-        body,
-        closure,
-    } = callee
-    {
-        let args: Vec<_> = arguments
-            .iter()
-            .map(|arg| arg.eval(ctx))
-            .collect::<Result<_, _>>()?;
-        let mut g = ctx.push();
-        g.load(&closure);
-        for (name, val) in parameters.into_iter().zip(args) {
-            g.bind(name, val);
-        }
-        Ok(body.eval_in_context(&mut g)?)
+    if let Some(f) = callee.as_function() {
+        f.call(ctx, arguments)
     } else {
         Err(ErrorKind::Type.into())
     }

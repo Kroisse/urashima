@@ -3,8 +3,8 @@ use serde::Deserialize;
 use super::Expression;
 use crate::{
     capsule::Capsule,
-    data::{record::Key, Symbol, Variant},
-    environment::{Environment},
+    data::{record::Key, Function, Symbol, Variant},
+    environment::Environment,
     error::{ErrorKind, Fallible},
     eval::Evaluate,
     statement::Statement,
@@ -86,17 +86,8 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Key, Expression)]) -> Fallible<Varia
     Ok(Variant::Record(items.into_iter().collect()))
 }
 
-fn expr_fn(
-    _ctx: &mut Capsule,
-    parameters: &[Symbol],
-    body: &BlockExpression,
-) -> Fallible<Variant> {
-    let closure = Environment::default();
-    Ok(Variant::Fn {
-        parameters: parameters.to_vec(),
-        closure,
-        body: body.clone(),
-    })
+fn expr_fn(ctx: &mut Capsule, parameters: &[Symbol], body: &BlockExpression) -> Fallible<Variant> {
+    Ok(Function::new(ctx, parameters.to_vec(), body.clone()).into())
 }
 
 #[cfg(test)]
