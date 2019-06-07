@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 failure = "0.1.5"
 serde = { version = "1.0.91", features = ["derive"] }
+smallvec = "0.6"
 string_cache = "0.7"
 
 [build-dependencies]

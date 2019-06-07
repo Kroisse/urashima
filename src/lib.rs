@@ -20,6 +20,7 @@ mod data;
 mod environment;
 mod eval;
 mod expr;
+mod program;
 mod statement;
 
 pub mod capsule;

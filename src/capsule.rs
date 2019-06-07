@@ -1,9 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::data::Symbol;
-use crate::error::{ErrorKind, Fallible};
 use crate::environment::{Environment, Value};
+use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
+use crate::program::ScriptProgram;
 
 pub struct Capsule {
     pub(crate) environments: Vec<Environment>,
@@ -26,6 +27,10 @@ impl Capsule {
     pub(crate) fn context(&mut self) -> Context<'_> {
         Context { capsule: self }
     }
+
+    pub fn execute(&mut self, program: ScriptProgram) -> Fallible<()> {
+        program.eval(&mut self.context())
+    }
 }
 
 pub struct Context<'a> {
@@ -37,21 +42,22 @@ impl<'a> Context<'a> {
         ContextGuard::new(self)
     }
 
-    pub(crate) fn bind(&mut self, name: Symbol, value: Value) {
-        let env = self
-            .capsule
+    fn environment_mut(&mut self) -> &mut Environment {
+        self.capsule
             .environments
             .last_mut()
-            .expect("no environment");
-        env.bind(name, value);
+            .expect("no environment")
+    }
+
+    pub(crate) fn bind(&mut self, name: Symbol, value: Value) {
+        self.environment_mut().bind(name, value);
     }
 
     pub(crate) fn lookup(&self, depth: usize, index: usize) -> Fallible<&Value> {
-        self._lookup(depth, index)
-            .ok_or_else(|| ErrorKind::Name.into())
+        self._lookup(depth, index).ok_or_else(Error::name)
     }
 
-    pub(crate) fn _lookup(&self, depth: usize, index: usize) -> Option<&Value> {
+    fn _lookup(&self, depth: usize, index: usize) -> Option<&Value> {
         let i = self.capsule.environments.len().checked_sub(depth + 1)?;
         self.capsule.environments.get(i)?.values.get(index)
     }

@@ -32,6 +32,10 @@ impl Error {
         ErrorKind::Unimplemented.into()
     }
 
+    pub(crate) fn name() -> Error {
+        ErrorKind::Name.into()
+    }
+
     pub(crate) fn loop_break() -> Error {
         ErrorKind::Break.into()
     }

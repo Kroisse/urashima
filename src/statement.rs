@@ -9,6 +9,7 @@ use crate::expr::Expression;
 #[derive(Clone, Debug, Deserialize)]
 pub enum Statement {
     Binding(Symbol, Expression),
+    Expr(Expression),
     Return(Expression),
     Break,
     Continue,
@@ -23,6 +24,10 @@ impl Evaluate for Statement {
             Statement::Binding(name, expr) => {
                 let val = expr.eval(ctx)?;
                 ctx.bind(name.clone(), val);
+                Ok(())
+            }
+            Statement::Expr(expr) => {
+                expr.eval(ctx)?;
                 Ok(())
             }
             Statement::Break => Err(Error::loop_break()),
