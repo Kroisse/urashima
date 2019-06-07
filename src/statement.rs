@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use crate::capsule::Context;
-use crate::environment::Symbol;
+use crate::data::Symbol;
 use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 use crate::expr::Expression;

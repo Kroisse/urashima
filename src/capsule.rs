@@ -1,7 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::environment::{Environment, Symbol, Value};
+use crate::data::Symbol;
 use crate::error::{ErrorKind, Fallible};
+use crate::environment::{Environment, Value};
 use crate::eval::Evaluate;
 
 pub struct Capsule {

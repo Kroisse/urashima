@@ -2,7 +2,8 @@ use std::iter::FromIterator;
 
 use serde::Deserialize;
 
-use crate::environment::{Symbol, Value};
+use crate::data::Symbol;
+use crate::environment::Value;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Record {

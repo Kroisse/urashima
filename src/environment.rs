@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{data::record::Record, expr::BlockExpression};
 
-pub type Symbol = String;
+pub use crate::data::Symbol;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]

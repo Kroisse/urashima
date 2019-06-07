@@ -3,8 +3,8 @@ use serde::Deserialize;
 use super::Expression;
 use crate::{
     capsule::Context,
-    data::record::Key,
-    environment::{Environment, Symbol, Value},
+    data::{record::Key, Symbol},
+    environment::{Environment, Value},
     error::{ErrorKind, Fallible},
     eval::Evaluate,
     statement::Statement,
