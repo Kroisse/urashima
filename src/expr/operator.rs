@@ -55,7 +55,7 @@ mod test {
     use serde_json::{from_value, json};
 
     use super::*;
-    use crate::capsule::Capsule;
+    use crate::runtime::Runtime;
 
     #[test]
     fn eval_operator_add() -> Fallible<()> {
@@ -66,7 +66,8 @@ mod test {
             ],
         }))?;
 
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(3));
 
@@ -82,7 +83,8 @@ mod test {
             ],
         }))?;
 
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(-1));
 

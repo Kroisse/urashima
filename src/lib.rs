@@ -25,6 +25,8 @@ mod statement;
 
 pub mod capsule;
 pub mod error;
+pub mod runtime;
 
 pub use crate::capsule::Capsule;
 pub use crate::error::{Error, Fallible};
+pub use crate::runtime::Runtime;

@@ -73,7 +73,7 @@ mod test {
     use serde_json::{from_value, json};
 
     use super::*;
-    use crate::capsule::Capsule;
+    use crate::runtime::Runtime;
 
     #[test]
     fn eval_if() -> Fallible<()> {
@@ -91,7 +91,8 @@ mod test {
             },
         });
 
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
 
         let expr: Expression = from_value(code.clone())?;
         let value = capsule.eval(&expr)?;

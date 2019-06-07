@@ -105,7 +105,7 @@ mod test {
     use serde_json::{from_value, json};
 
     use super::*;
-    use crate::capsule::Capsule;
+    use crate::runtime::Runtime;
 
     #[test]
     fn eval_unit_record() -> Fallible<()> {
@@ -113,7 +113,8 @@ mod test {
             "Record": [],
         }))?;
 
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
         let value = capsule.eval(&expr)?;
         let rec = value.as_record().unwrap();
         assert!(rec.fields.is_empty());
@@ -132,7 +133,8 @@ mod test {
             },
         }))?;
 
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(42));
 
@@ -141,7 +143,8 @@ mod test {
 
     #[test]
     fn eval_fn() -> Fallible<()> {
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
 
         let decl: Statement = from_value(json!({
             "Binding": ["answer_to_the_ultimate_question_of_life_the_universe_and_everything", {
@@ -172,7 +175,8 @@ mod test {
 
     #[test]
     fn eval_fn_args() -> Fallible<()> {
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
 
         let decl: Statement = from_value(json!({
             "Binding": ["increase", {
@@ -206,7 +210,8 @@ mod test {
 
     #[test]
     fn eval_fn_args_with_closed_bindings() -> Fallible<()> {
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
 
         let stmts: Vec<Statement> = from_value(json!([
             {

@@ -1,6 +1,9 @@
 use std::fmt;
+use std::path::PathBuf;
 
 use failure::{Backtrace, Context, Fail};
+
+use crate::program::PackagePath;
 
 #[derive(Debug)]
 pub struct Error {
@@ -58,6 +61,12 @@ pub(crate) enum ErrorKind {
 
     #[fail(display = "value error")]
     Value,
+
+    #[fail(display = "import error")]
+    Import(PackagePath),
+
+    #[fail(display = "load error")]
+    Load(PathBuf),
 
     #[fail(display = "unexpected break statement")]
     Break,

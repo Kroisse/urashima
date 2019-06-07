@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 use crate::capsule::Context;
+use crate::data::Symbol;
 use crate::environment::Value;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
@@ -11,11 +12,13 @@ use super::Expression;
 pub enum CallExpression {
     FunctionCall {
         callee: Box<Expression>,
+        #[serde(default)]
         arguments: Vec<Expression>,
     },
     MethodInvocation {
-        object: Box<Expression>,
-        method: String,
+        receiver: Box<Expression>,
+        method: Symbol,
+        #[serde(default)]
         arguments: Vec<Expression>,
     },
 }
@@ -27,7 +30,11 @@ impl Evaluate for CallExpression {
         use CallExpression::*;
         match self {
             FunctionCall { callee, arguments } => eval_fn_call(ctx, &callee, &arguments),
-            MethodInvocation { .. } => Err(ErrorKind::Unimplemented.into()),
+            MethodInvocation {
+                receiver,
+                method,
+                arguments,
+            } => eval_invoke(ctx, &receiver, &method, &arguments),
         }
     }
 }
@@ -56,5 +63,31 @@ fn eval_fn_call(
         Ok(body.eval_in_context(&mut g)?)
     } else {
         Err(ErrorKind::Type.into())
+    }
+}
+
+fn eval_invoke(
+    ctx: &mut Context<'_>,
+    receiver: &Expression,
+    method: &Symbol,
+    _arguments: &[Expression],
+) -> Fallible<Value> {
+    let receiver = receiver.eval(ctx)?;
+    if method == "println" {
+        match receiver {
+            Value::Str(s) => {
+                ctx.write(s.as_bytes())?;
+                ctx.write(b"\n")?;
+                Ok(Value::unit())
+            }
+            Value::Int(i) => {
+                ctx.write(i.to_string().as_bytes())?;
+                ctx.write(b"\n")?;
+                Ok(Value::unit())
+            }
+            _ => Err(ErrorKind::Unimplemented.into()),
+        }
+    } else {
+        Err(ErrorKind::Unimplemented.into())
     }
 }

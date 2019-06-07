@@ -5,6 +5,7 @@ use crate::data::Symbol;
 use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 use crate::expr::Expression;
+use crate::program::PackageDep;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum Statement {
@@ -13,6 +14,7 @@ pub enum Statement {
     Return(Expression),
     Break,
     Continue,
+    Use(PackageDep),
     Print(Expression), // for debug only
 }
 
@@ -32,6 +34,7 @@ impl Evaluate for Statement {
             }
             Statement::Break => Err(Error::loop_break()),
             Statement::Continue => Err(Error::loop_continue()),
+            Statement::Use(dep) => dep.eval(ctx),
             _ => Err(Error::unimplemented()),
         }
     }
@@ -43,7 +46,7 @@ mod test {
     use serde_json::{from_value, json};
 
     use super::*;
-    use crate::capsule::Capsule;
+    use crate::runtime::Runtime;
 
     #[test]
     fn eval_bind_literal() -> Fallible<()> {
@@ -51,7 +54,8 @@ mod test {
             "Binding": ["foo", {"Integral": 42}],
         }))?;
 
-        let mut capsule = Capsule::interactive();
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
         capsule.eval(&stmt)?;
         let env = capsule.environments.last().unwrap();
         assert_eq!(env.values[0].to_int(), Some(42));

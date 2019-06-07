@@ -32,6 +32,34 @@ struct Binding {
     value: Expression,
 }
 
+impl Evaluate for PackageProgram {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+        for dep in &self.uses {
+            dep.eval(ctx)?;
+        }
+        for b in &self.bindings {
+            let value = b.value.eval(ctx)?;
+            ctx.bind(b.name.clone(), value);
+        }
+        Ok(())
+    }
+}
+
+impl Evaluate for PackageDep {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+        let pkg = ctx.load(self.path.clone())?;
+        for name in &self.imports {
+            let value = pkg.environment.lookup_name(&name)?;
+            ctx.bind(name.clone(), value.clone());
+        }
+        Ok(())
+    }
+}
+
 #[derive(Deserialize)]
 pub struct ScriptProgram {
     pub(crate) statements: Vec<Statement>,
@@ -69,7 +97,10 @@ mod internal {
     }
 
     impl<'de> Deserialize<'de> for PackagePath {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
             struct V;
             impl<'a> Visitor<'a> for V {
                 type Value = SmallVec<[Symbol; 4]>;
@@ -82,7 +113,10 @@ mod internal {
                 where
                     A: SeqAccess<'a>,
                 {
-                    let mut res = seq.size_hint().map(SmallVec::with_capacity).unwrap_or_default();
+                    let mut res = seq
+                        .size_hint()
+                        .map(SmallVec::with_capacity)
+                        .unwrap_or_default();
                     while let Some(i) = seq.next_element()? {
                         res.push(i);
                     }

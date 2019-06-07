@@ -6,14 +6,27 @@ authors = ["Eunchong Yu <kroisse@gmail.com>"]
 license = "Apache-2.0"
 edition = "2018"
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
+chashmap = "2.2"
 failure = "0.1.5"
+log = "0.4"
 serde = { version = "1.0.91", features = ["derive"] }
+serde_yaml = "0.8"
 smallvec = "0.6"
 string_cache = "0.7"
+
+env_logger = "0.6"
+termcolor = "1.0"
 
 [build-dependencies]
 string_cache_codegen = "0.4"
 
 [dev-dependencies]
 serde_json = "1.0.39"
+
+[profile.release]
+opt-level = "z"
+lto = true
