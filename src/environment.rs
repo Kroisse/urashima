@@ -12,6 +12,7 @@ pub enum Value {
     Bool(bool),
     Int(i64),
     // Nat(u32),
+    Str(String),
     Record(Record),
 
     #[serde(skip)]
@@ -68,6 +69,18 @@ impl From<bool> for Value {
 impl From<i64> for Value {
     fn from(val: i64) -> Value {
         Value::Int(val)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(val: &str) -> Value {
+        Value::Str(val.into())
+    }
+}
+
+impl From<String> for Value {
+    fn from(val: String) -> Value {
+        Value::Str(val)
     }
 }
 

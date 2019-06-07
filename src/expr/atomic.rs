@@ -15,7 +15,9 @@ pub enum AtomicExpression {
     False,
     True,
     Integral(i64),
+    Str(String), // ?
     Binding {
+        #[serde(default)]
         depth: usize,
         index: usize,
     },
@@ -36,6 +38,7 @@ impl Evaluate for AtomicExpression {
             False => Ok(Value::Bool(false)),
             True => Ok(Value::Bool(true)),
             Integral(val) => Ok(Value::from(*val)),
+            Str(val) => Ok(Value::from(&val[..])),
             Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
             Record(exprs) => eval_record(ctx, &exprs),
             Block(blk) => blk.eval(ctx),
@@ -125,7 +128,7 @@ mod test {
                 "statements": [
                     {"Binding": ["foo", {"Integral": 42}]},
                 ],
-                "returns": {"Binding": {"depth": 0, "index": 0}},
+                "returns": {"Binding": {"index": 0}},
             },
         }))?;
 
@@ -155,7 +158,7 @@ mod test {
 
         let code = json!({
             "FunctionCall": {
-                "callee": {"Binding": {"depth": 0, "index": 0}},
+                "callee": {"Binding": {"index": 0}},
                 "arguments": [],
             },
         });
@@ -178,7 +181,7 @@ mod test {
                     "body": {
                         "statements": [],
                         "returns": {"+": [
-                            {"Binding": {"depth": 0, "index": 0}},
+                            {"Binding": {"index": 0}},
                             {"Integral": 1},
                         ]},
                     }
@@ -189,7 +192,7 @@ mod test {
 
         let code = json!({
             "FunctionCall": {
-                "callee": {"Binding": {"depth": 0, "index": 0}},
+                "callee": {"Binding": {"index": 0}},
                 "arguments": [{"Integral": 1}],
             },
         });
@@ -230,7 +233,7 @@ mod test {
 
         let code = json!({
             "FunctionCall": {
-                "callee": {"Binding": {"depth": 0, "index": 1}},
+                "callee": {"Binding": {"index": 1}},
                 "arguments": [{"Integral": 1}],
             },
         });
