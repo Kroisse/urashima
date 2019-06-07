@@ -2,8 +2,7 @@ use std::iter::FromIterator;
 
 use serde::Deserialize;
 
-use crate::data::Symbol;
-use crate::environment::Value;
+use super::{Symbol, Variant};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Record {
@@ -18,10 +17,10 @@ impl Default for Record {
     }
 }
 
-impl FromIterator<(Key, Value)> for Record {
+impl FromIterator<(Key, Variant)> for Record {
     fn from_iter<T>(iter: T) -> Self
     where
-        T: IntoIterator<Item = (Key, Value)>,
+        T: IntoIterator<Item = (Key, Variant)>,
     {
         let fields = iter
             .into_iter()
@@ -36,8 +35,8 @@ impl FromIterator<(Key, Value)> for Record {
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum Field {
-    Index { key: usize, value: Value },
-    Label { key: Symbol, value: Value },
+    Index { key: usize, value: Variant },
+    Label { key: Symbol, value: Variant },
 }
 
 #[derive(Clone, Eq, Debug, Deserialize, Hash, Ord, PartialEq, PartialOrd)]

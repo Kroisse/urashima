@@ -3,8 +3,8 @@ use serde::Deserialize;
 use super::Expression;
 use crate::{
     capsule::Capsule,
-    data::{record::Key, Symbol},
-    environment::{Environment, Value},
+    data::{record::Key, Symbol, Variant},
+    environment::{Environment},
     error::{ErrorKind, Fallible},
     eval::Evaluate,
     statement::Statement,
@@ -30,15 +30,15 @@ pub enum AtomicExpression {
 }
 
 impl Evaluate for AtomicExpression {
-    type Value = Value;
+    type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use AtomicExpression::*;
         match self {
-            False => Ok(Value::Bool(false)),
-            True => Ok(Value::Bool(true)),
-            Integral(val) => Ok(Value::from(*val)),
-            Str(val) => Ok(Value::from(&val[..])),
+            False => Ok(Variant::Bool(false)),
+            True => Ok(Variant::Bool(true)),
+            Integral(val) => Ok(Variant::from(*val)),
+            Str(val) => Ok(Variant::from(&val[..])),
             Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
             Record(exprs) => eval_record(ctx, &exprs),
             Block(blk) => blk.eval(ctx),
@@ -54,7 +54,7 @@ pub struct BlockExpression {
 }
 
 impl BlockExpression {
-    pub(crate) fn eval_in_context(&self, ctx: &mut Capsule) -> Fallible<Value> {
+    pub(crate) fn eval_in_context(&self, ctx: &mut Capsule) -> Fallible<Variant> {
         for stmt in &self.statements {
             stmt.eval(ctx)?;
         }
@@ -63,7 +63,7 @@ impl BlockExpression {
 }
 
 impl Evaluate for BlockExpression {
-    type Value = Value;
+    type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         let mut g = ctx.push();
@@ -71,7 +71,7 @@ impl Evaluate for BlockExpression {
     }
 }
 
-fn eval_record(ctx: &mut Capsule, exprs: &[(Key, Expression)]) -> Fallible<Value> {
+fn eval_record(ctx: &mut Capsule, exprs: &[(Key, Expression)]) -> Fallible<Variant> {
     let mut items = Vec::new();
     let mut keys = Vec::new();
     for (key, expr) in exprs {
@@ -83,16 +83,16 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Key, Expression)]) -> Fallible<Value
             return Err(ErrorKind::Value.into());
         }
     }
-    Ok(Value::Record(items.into_iter().collect()))
+    Ok(Variant::Record(items.into_iter().collect()))
 }
 
 fn expr_fn(
     _ctx: &mut Capsule,
     parameters: &[Symbol],
     body: &BlockExpression,
-) -> Fallible<Value> {
+) -> Fallible<Variant> {
     let closure = Environment::default();
-    Ok(Value::Fn {
+    Ok(Variant::Fn {
         parameters: parameters.to_vec(),
         closure,
         body: body.clone(),

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use crate::capsule::Capsule;
-use crate::environment::Value;
+use crate::data::Variant;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
@@ -20,7 +20,7 @@ pub enum OperatorExpression {
 }
 
 impl Evaluate for OperatorExpression {
-    type Value = Value;
+    type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use OperatorExpression::*;
@@ -29,7 +29,7 @@ impl Evaluate for OperatorExpression {
                 let a = a.eval(ctx)?;
                 let b = b.eval(ctx)?;
                 match (a, b) {
-                    (Value::Int(a), Value::Int(b)) => Ok(Value::Int(a + b)),
+                    (Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a + b)),
                     _ => Err(ErrorKind::Type.into()),
                 }
             }
@@ -37,7 +37,7 @@ impl Evaluate for OperatorExpression {
                 let a = a.eval(ctx)?;
                 let b = b.eval(ctx)?;
                 match (a, b) {
-                    (Value::Int(a), Value::Int(b)) => Ok(Value::Int(a - b)),
+                    (Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a - b)),
                     _ => Err(ErrorKind::Type.into()),
                 }
             }

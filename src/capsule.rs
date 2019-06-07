@@ -2,8 +2,8 @@ use std::io::prelude::*;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Weak};
 
-use crate::data::Symbol;
-use crate::environment::{Environment, Package, Value};
+use crate::data::{Symbol, Variant};
+use crate::environment::{Environment, Package};
 use crate::error::{Error, ErrorKind, Fallible};
 use crate::eval::Evaluate;
 use crate::program::PackagePath;
@@ -68,15 +68,15 @@ impl Capsule {
             .expect("no environment")
     }
 
-    pub(crate) fn bind(&mut self, name: Symbol, value: Value) {
+    pub(crate) fn bind(&mut self, name: Symbol, value: Variant) {
         self.environment_mut().bind(name, value);
     }
 
-    pub(crate) fn lookup(&self, depth: usize, index: usize) -> Fallible<&Value> {
+    pub(crate) fn lookup(&self, depth: usize, index: usize) -> Fallible<&Variant> {
         self._lookup(depth, index).ok_or_else(Error::name)
     }
 
-    fn _lookup(&self, depth: usize, index: usize) -> Option<&Value> {
+    fn _lookup(&self, depth: usize, index: usize) -> Option<&Variant> {
         let i = self.environments.len().checked_sub(depth + 1)?;
         self.environments.get(i)?.values.get(index)
     }

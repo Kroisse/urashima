@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use crate::capsule::Capsule;
-use crate::environment::Value;
+use crate::data::Variant;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
@@ -18,7 +18,7 @@ pub enum ControlFlowExpression {
 }
 
 impl Evaluate for ControlFlowExpression {
-    type Value = Value;
+    type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use ControlFlowExpression::*;
@@ -38,21 +38,21 @@ fn eval_if(
     cond: &Expression,
     then_blk: &BlockExpression,
     else_blk: Option<&BlockExpression>,
-) -> Fallible<Value> {
-    if let Value::Bool(c) = cond.eval(ctx)? {
+) -> Fallible<Variant> {
+    if let Variant::Bool(c) = cond.eval(ctx)? {
         if c {
             then_blk.eval(&mut ctx.push())
         } else if let Some(e) = else_blk {
             e.eval(&mut ctx.push())
         } else {
-            Ok(Value::unit())
+            Ok(Variant::unit())
         }
     } else {
         Err(ErrorKind::Type.into())
     }
 }
 
-fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Value> {
+fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Variant> {
     loop {
         if let Err(e) = blk.eval(ctx) {
             match e.kind() {
@@ -64,7 +64,7 @@ fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Value> {
             }
         }
     }
-    Ok(Value::unit())
+    Ok(Variant::unit())
 }
 
 #[cfg(test)]

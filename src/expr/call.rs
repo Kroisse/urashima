@@ -1,8 +1,7 @@
 use serde::Deserialize;
 
 use crate::capsule::Capsule;
-use crate::data::Symbol;
-use crate::environment::Value;
+use crate::data::{Symbol, Variant};
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
@@ -24,7 +23,7 @@ pub enum CallExpression {
 }
 
 impl Evaluate for CallExpression {
-    type Value = Value;
+    type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use CallExpression::*;
@@ -43,9 +42,9 @@ fn eval_fn_call(
     ctx: &mut Capsule,
     callee: &Expression,
     arguments: &[Expression],
-) -> Fallible<Value> {
+) -> Fallible<Variant> {
     let callee = callee.eval(ctx)?;
-    if let Value::Fn {
+    if let Variant::Fn {
         parameters,
         body,
         closure,
@@ -71,19 +70,19 @@ fn eval_invoke(
     receiver: &Expression,
     method: &Symbol,
     _arguments: &[Expression],
-) -> Fallible<Value> {
+) -> Fallible<Variant> {
     let receiver = receiver.eval(ctx)?;
     if method == "println" {
         match receiver {
-            Value::Str(s) => {
+            Variant::Str(s) => {
                 ctx.write(s.as_bytes())?;
                 ctx.write(b"\n")?;
-                Ok(Value::unit())
+                Ok(Variant::unit())
             }
-            Value::Int(i) => {
+            Variant::Int(i) => {
                 ctx.write(i.to_string().as_bytes())?;
                 ctx.write(b"\n")?;
-                Ok(Value::unit())
+                Ok(Variant::unit())
             }
             _ => Err(ErrorKind::Unimplemented.into()),
         }

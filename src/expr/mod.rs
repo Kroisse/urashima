@@ -6,7 +6,7 @@ mod operator;
 use serde::Deserialize;
 
 use crate::capsule::Capsule;
-use crate::environment::Value;
+use crate::data::Variant;
 use crate::error::Fallible;
 use crate::eval::Evaluate;
 
@@ -27,7 +27,7 @@ pub enum Expression {
 }
 
 impl Evaluate for Expression {
-    type Value = Value;
+    type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use Expression::*;
