@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::capsule::Context;
+use crate::capsule::Capsule;
 use crate::environment::Value;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
@@ -22,7 +22,7 @@ pub enum OperatorExpression {
 impl Evaluate for OperatorExpression {
     type Value = Value;
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use OperatorExpression::*;
         match self {
             Addition(a, b) => {

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::capsule::Context;
+use crate::capsule::Capsule;
 use crate::environment::Value;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
@@ -20,7 +20,7 @@ pub enum ControlFlowExpression {
 impl Evaluate for ControlFlowExpression {
     type Value = Value;
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use ControlFlowExpression::*;
         match self {
             If {
@@ -34,7 +34,7 @@ impl Evaluate for ControlFlowExpression {
 }
 
 fn eval_if(
-    ctx: &mut Context<'_>,
+    ctx: &mut Capsule,
     cond: &Expression,
     then_blk: &BlockExpression,
     else_blk: Option<&BlockExpression>,
@@ -52,7 +52,7 @@ fn eval_if(
     }
 }
 
-fn eval_loop(ctx: &mut Context<'_>, blk: &BlockExpression) -> Fallible<Value> {
+fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Value> {
     loop {
         if let Err(e) = blk.eval(ctx) {
             match e.kind() {

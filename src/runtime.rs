@@ -50,7 +50,7 @@ impl Runtime {
         let prog: ScriptProgram =
             serde_yaml::from_reader(f).map_err(|_| ErrorKind::Load(path.to_owned()))?;
         let mut capsule = self.root_capsule();
-        prog.eval(&mut capsule.context())?;
+        prog.eval(&mut capsule)?;
         Ok(())
     }
 }
@@ -67,7 +67,7 @@ mod test {
         let prog: ScriptProgram = serde_yaml::from_slice(&*s)?;
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
-        capsule.execute(prog)?;
+        capsule.eval(&prog)?;
         Ok(())
     }
 }

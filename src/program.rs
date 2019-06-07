@@ -2,7 +2,7 @@ use serde::Deserialize;
 use smallvec::SmallVec;
 
 use crate::{
-    capsule::Context, data::Symbol, error::Fallible, eval::Evaluate, expr::Expression,
+    capsule::Capsule, data::Symbol, error::Fallible, eval::Evaluate, expr::Expression,
     statement::Statement,
 };
 
@@ -35,7 +35,7 @@ struct Binding {
 impl Evaluate for PackageProgram {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         for dep in &self.uses {
             dep.eval(ctx)?;
         }
@@ -50,7 +50,7 @@ impl Evaluate for PackageProgram {
 impl Evaluate for PackageDep {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         let pkg = ctx.load(self.path.clone())?;
         for name in &self.imports {
             let value = pkg.environment.lookup_name(&name)?;
@@ -68,7 +68,7 @@ pub struct ScriptProgram {
 impl Evaluate for ScriptProgram {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         for stmt in &self.statements {
             stmt.eval(ctx)?;
         }

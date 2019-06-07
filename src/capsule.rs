@@ -6,7 +6,7 @@ use crate::data::Symbol;
 use crate::environment::{Environment, Package, Value};
 use crate::error::{Error, ErrorKind, Fallible};
 use crate::eval::Evaluate;
-use crate::program::{PackagePath, ScriptProgram};
+use crate::program::PackagePath;
 use crate::runtime::RuntimeContextRef;
 
 pub struct Capsule {
@@ -26,20 +26,13 @@ impl Capsule {
     where
         T: Evaluate,
     {
-        code.eval(&mut self.context())
+        code.eval(self)
     }
 
-    pub(crate) fn context(&mut self) -> Context<'_> {
-        Context { capsule: self }
-    }
-
-    pub fn execute(&mut self, program: ScriptProgram) -> Fallible<()> {
-        program.eval(&mut self.context())
-    }
-
-    pub(crate) fn load(&self, path: PackagePath) -> Fallible<Arc<Package>> {
+    pub(crate) fn load(&mut self, path: PackagePath) -> Fallible<Arc<Package>> {
         let mut res = Err(ErrorKind::Import(path.clone()).into());
-        self.ctx.packages.alter(path.clone(), |mut entry| {
+        let ctx = Arc::clone(&self.ctx);
+        ctx.packages.alter(path.clone(), |mut entry| {
             if let Some(pkg) = entry.as_ref().and_then(Weak::upgrade) {
                 res = Ok(pkg);
                 return entry;
@@ -47,7 +40,7 @@ impl Capsule {
             res = (|| {
                 let prog = self::internal::load(&self.ctx.paths, &path)?;
                 let mut pkg_capsule = Capsule::root(self.ctx.clone());
-                prog.eval(&mut pkg_capsule.context())?;
+                prog.eval(&mut pkg_capsule)?;
                 let pkg = Package {
                     environment: pkg_capsule
                         .environments
@@ -56,6 +49,7 @@ impl Capsule {
                         .expect("no environment"),
                 };
                 let pkg = Arc::new(pkg);
+                self.environment_mut().packages.push(Arc::clone(&pkg));
                 entry = Some(Arc::downgrade(&pkg));
                 Ok(pkg)
             })();
@@ -63,20 +57,13 @@ impl Capsule {
         });
         res
     }
-}
 
-pub struct Context<'a> {
-    capsule: &'a mut Capsule,
-}
-
-impl<'a> Context<'a> {
-    pub(crate) fn push(&mut self) -> ContextGuard<'a, '_> {
+    pub(crate) fn push(&mut self) -> ContextGuard<'_> {
         ContextGuard::new(self)
     }
 
     fn environment_mut(&mut self) -> &mut Environment {
-        self.capsule
-            .environments
+        self.environments
             .last_mut()
             .expect("no environment")
     }
@@ -90,14 +77,8 @@ impl<'a> Context<'a> {
     }
 
     fn _lookup(&self, depth: usize, index: usize) -> Option<&Value> {
-        let i = self.capsule.environments.len().checked_sub(depth + 1)?;
-        self.capsule.environments.get(i)?.values.get(index)
-    }
-
-    pub(crate) fn load(&mut self, path: PackagePath) -> Fallible<Arc<Package>> {
-        let pkg = self.capsule.load(path)?;
-        self.environment_mut().packages.push(Arc::clone(&pkg));
-        Ok(pkg)
+        let i = self.environments.len().checked_sub(depth + 1)?;
+        self.environments.get(i)?.values.get(index)
     }
 
     pub(crate) fn write(&mut self, bytes: &[u8]) -> Fallible<()> {
@@ -106,17 +87,16 @@ impl<'a> Context<'a> {
     }
 }
 
-pub(crate) struct ContextGuard<'a, 'b>(&'b mut Context<'a>);
+pub(crate) struct ContextGuard<'a>(&'a mut Capsule);
 
-impl<'a, 'b> ContextGuard<'a, 'b> {
-    fn new(ctx: &'b mut Context<'a>) -> Self {
-        ctx.capsule.environments.push(Environment::default());
+impl<'a> ContextGuard<'a> {
+    fn new(ctx: &'a mut Capsule) -> Self {
+        ctx.environments.push(Environment::default());
         ContextGuard(ctx)
     }
 
     pub(crate) fn load(&mut self, env: &Environment) {
         self.0
-            .capsule
             .environments
             .last_mut()
             .expect("no environment")
@@ -124,21 +104,21 @@ impl<'a, 'b> ContextGuard<'a, 'b> {
     }
 }
 
-impl Drop for ContextGuard<'_, '_> {
+impl Drop for ContextGuard<'_> {
     fn drop(&mut self) {
-        self.0.capsule.environments.pop();
+        self.0.environments.pop();
     }
 }
 
-impl<'a> Deref for ContextGuard<'a, '_> {
-    type Target = Context<'a>;
+impl<'a> Deref for ContextGuard<'a> {
+    type Target = Capsule;
 
     fn deref(&self) -> &Self::Target {
         &*self.0
     }
 }
 
-impl<'a> DerefMut for ContextGuard<'a, '_> {
+impl<'a> DerefMut for ContextGuard<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.0
     }

@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use super::Expression;
 use crate::{
-    capsule::Context,
+    capsule::Capsule,
     data::{record::Key, Symbol},
     environment::{Environment, Value},
     error::{ErrorKind, Fallible},
@@ -32,7 +32,7 @@ pub enum AtomicExpression {
 impl Evaluate for AtomicExpression {
     type Value = Value;
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use AtomicExpression::*;
         match self {
             False => Ok(Value::Bool(false)),
@@ -54,7 +54,7 @@ pub struct BlockExpression {
 }
 
 impl BlockExpression {
-    pub(crate) fn eval_in_context(&self, ctx: &mut Context<'_>) -> Fallible<Value> {
+    pub(crate) fn eval_in_context(&self, ctx: &mut Capsule) -> Fallible<Value> {
         for stmt in &self.statements {
             stmt.eval(ctx)?;
         }
@@ -65,13 +65,13 @@ impl BlockExpression {
 impl Evaluate for BlockExpression {
     type Value = Value;
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         let mut g = ctx.push();
         self.eval_in_context(&mut g)
     }
 }
 
-fn eval_record(ctx: &mut Context<'_>, exprs: &[(Key, Expression)]) -> Fallible<Value> {
+fn eval_record(ctx: &mut Capsule, exprs: &[(Key, Expression)]) -> Fallible<Value> {
     let mut items = Vec::new();
     let mut keys = Vec::new();
     for (key, expr) in exprs {
@@ -87,7 +87,7 @@ fn eval_record(ctx: &mut Context<'_>, exprs: &[(Key, Expression)]) -> Fallible<V
 }
 
 fn expr_fn(
-    _ctx: &mut Context<'_>,
+    _ctx: &mut Capsule,
     parameters: &[Symbol],
     body: &BlockExpression,
 ) -> Fallible<Value> {

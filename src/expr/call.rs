@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::capsule::Context;
+use crate::capsule::Capsule;
 use crate::data::Symbol;
 use crate::environment::Value;
 use crate::error::{ErrorKind, Fallible};
@@ -26,7 +26,7 @@ pub enum CallExpression {
 impl Evaluate for CallExpression {
     type Value = Value;
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use CallExpression::*;
         match self {
             FunctionCall { callee, arguments } => eval_fn_call(ctx, &callee, &arguments),
@@ -40,7 +40,7 @@ impl Evaluate for CallExpression {
 }
 
 fn eval_fn_call(
-    ctx: &mut Context<'_>,
+    ctx: &mut Capsule,
     callee: &Expression,
     arguments: &[Expression],
 ) -> Fallible<Value> {
@@ -67,7 +67,7 @@ fn eval_fn_call(
 }
 
 fn eval_invoke(
-    ctx: &mut Context<'_>,
+    ctx: &mut Capsule,
     receiver: &Expression,
     method: &Symbol,
     _arguments: &[Expression],

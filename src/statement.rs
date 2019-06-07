@@ -1,11 +1,13 @@
 use serde::Deserialize;
 
-use crate::capsule::Context;
-use crate::data::Symbol;
-use crate::error::{Error, Fallible};
-use crate::eval::Evaluate;
-use crate::expr::Expression;
-use crate::program::PackageDep;
+use crate::{
+    capsule::Capsule,
+    data::Symbol,
+    error::{Error, Fallible},
+    eval::Evaluate,
+    expr::Expression,
+    program::PackageDep,
+};
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum Statement {
@@ -21,7 +23,7 @@ pub enum Statement {
 impl Evaluate for Statement {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Context<'_>) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         match self {
             Statement::Binding(name, expr) => {
                 let val = expr.eval(ctx)?;
