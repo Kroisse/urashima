@@ -15,7 +15,7 @@ impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, ExprIndex> {
         D: Deserializer<'de>,
     {
         let expr = DeserializeSeed::deserialize(self.borrow::<Expression>(), deserializer)?;
-        Ok(ExprIndex(self.arena().insert(expr)))
+        Ok(self.arena().insert(expr))
     }
 }
 

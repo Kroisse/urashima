@@ -1,65 +1,26 @@
 mod impls;
 
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut, Index, IndexMut};
 
 use serde::de::{self, DeserializeSeed, Deserializer, Visitor};
 
 use super::Expression;
 use crate::{
+    arena::{Arena, Index},
     capsule::Capsule,
     data::Variant,
     error::{ErrorKind, Fallible},
     eval::Evaluate,
 };
 
-#[derive(Debug)]
-pub struct ExprArena(generational_arena::Arena<Expression>);
-
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct ExprIndex(generational_arena::Index);
+pub type ExprArena = Arena<Expression>;
+pub type ExprIndex = Index<Expression>;
 
 pub(crate) struct Alloc<'a, T>(&'a mut ExprArena, PhantomData<T>);
 
 impl ExprArena {
-    pub fn new() -> ExprArena {
-        ExprArena(generational_arena::Arena::new())
-    }
-
-    pub fn with_capacity(n: usize) -> ExprArena {
-        ExprArena(generational_arena::Arena::with_capacity(n))
-    }
-
-    pub(crate) fn alloc<'a, 'de, T>(&'a mut self) -> Alloc<'a, T> {
+    pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
         Alloc(self, PhantomData)
-    }
-}
-
-impl Deref for ExprArena {
-    type Target = generational_arena::Arena<Expression>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ExprArena {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Index<ExprIndex> for ExprArena {
-    type Output = Expression;
-
-    fn index(&self, index: ExprIndex) -> &Self::Output {
-        self.0.index(index.0)
-    }
-}
-
-impl IndexMut<ExprIndex> for ExprArena {
-    fn index_mut(&mut self, index: ExprIndex) -> &mut Self::Output {
-        self.0.index_mut(index.0)
     }
 }
 
@@ -69,7 +30,7 @@ impl Evaluate for ExprIndex {
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         let expr = ctx
             .expr_arena
-            .get(self.0)
+            .get(*self)
             .ok_or_else(|| ErrorKind::Runtime)?
             .clone();
         expr.eval(ctx)
@@ -87,7 +48,7 @@ impl<'a, 'de, T> Alloc<'a, T> {
         &mut *self.0
     }
 
-    pub(crate) fn borrow<'b, U>(&'b mut self) -> Alloc<'b, U> {
+    pub(crate) fn borrow<U>(&mut self) -> Alloc<'_, U> {
         Alloc(self.arena(), PhantomData)
     }
 }
