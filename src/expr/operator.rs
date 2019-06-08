@@ -1,22 +1,22 @@
-use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
 use crate::data::Variant;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
-use super::Expression;
+use super::ExprIndex;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub enum OperatorExpression {
     #[serde(rename = "+")]
-    Addition(Expression, Expression),
+    Addition(ExprIndex, ExprIndex),
 
     #[serde(rename = "-")]
-    Subtraction(Expression, Expression),
+    Subtraction(ExprIndex, ExprIndex),
 
     #[serde(rename = "new")]
-    New(Expression),
+    New(ExprIndex),
 }
 
 impl Evaluate for OperatorExpression {
@@ -52,42 +52,37 @@ impl Evaluate for OperatorExpression {
 #[cfg(test)]
 mod test {
     use failure::Fallible;
-    use serde_json::{from_value, json};
+    use serde_json::json;
 
-    use super::*;
-    use crate::runtime::Runtime;
+    use crate::{expr::ExprIndex, runtime::Runtime};
 
     #[test]
     fn eval_operator_add() -> Fallible<()> {
-        let expr: Expression = from_value(json!({
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
+        let expr: ExprIndex = capsule.parse(json!({
             "+": [
                 {"Integral": 1},
                 {"Integral": 2},
             ],
         }))?;
-
-        let rt = Runtime::new();
-        let mut capsule = rt.root_capsule();
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(3));
-
         Ok(())
     }
 
     #[test]
     fn eval_operator_sub() -> Fallible<()> {
-        let expr: Expression = from_value(json!({
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
+        let expr: ExprIndex = capsule.parse(json!({
             "-": [
                 {"Integral": 1},
                 {"Integral": 2},
             ],
         }))?;
-
-        let rt = Runtime::new();
-        let mut capsule = rt.root_capsule();
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(-1));
-
         Ok(())
     }
 }

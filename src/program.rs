@@ -1,14 +1,15 @@
 use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 use smallvec::SmallVec;
 
 use crate::{
-    capsule::Capsule, data::Symbol, error::Fallible, eval::Evaluate, expr::Expression,
+    capsule::Capsule, data::Symbol, error::Fallible, eval::Evaluate, expr::ExprIndex,
     statement::Statement,
 };
 
 pub use self::internal::PackagePath;
 
-#[derive(Deserialize)]
+#[derive(DeserializeSeed)]
 pub struct PackageProgram {
     /// Dependencies
     uses: Vec<PackageDep>,
@@ -20,16 +21,16 @@ pub struct PackageProgram {
     bindings: Vec<Binding>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub struct PackageDep {
     pub(crate) path: PackagePath,
     pub(crate) imports: Vec<Symbol>,
 }
 
-#[derive(Deserialize)]
+#[derive(DeserializeSeed)]
 struct Binding {
     name: Symbol,
-    value: Expression,
+    value: ExprIndex,
 }
 
 impl Evaluate for PackageProgram {
@@ -41,7 +42,7 @@ impl Evaluate for PackageProgram {
         }
         for b in &self.bindings {
             let value = b.value.eval(ctx)?;
-            ctx.bind(b.name.clone(), value);
+            ctx.bind(&b.name, value);
         }
         Ok(())
     }
@@ -54,13 +55,13 @@ impl Evaluate for PackageDep {
         let pkg = ctx.load(self.path.clone())?;
         for name in &self.imports {
             let value = pkg.environment.lookup_name(&name)?;
-            ctx.bind(name.clone(), value.clone());
+            ctx.bind(&name, value.clone());
         }
         Ok(())
     }
 }
 
-#[derive(Deserialize)]
+#[derive(DeserializeSeed)]
 pub struct ScriptProgram {
     pub(crate) statements: Vec<Statement>,
 }
@@ -80,9 +81,10 @@ mod internal {
     use std::fmt::{self, Display};
     use std::slice;
 
-    use serde::de::{Deserializer, SeqAccess, Visitor};
+    use serde::de::{DeserializeSeed, Deserializer, SeqAccess, Visitor};
 
     use super::*;
+    use crate::expr::Alloc;
 
     #[derive(Clone, Debug, Eq, Hash, PartialEq)]
     pub struct PackagePath(SmallVec<[Symbol; 4]>);
@@ -124,6 +126,17 @@ mod internal {
                 }
             }
             deserializer.deserialize_seq(V).map(PackagePath)
+        }
+    }
+
+    impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, PackagePath> {
+        type Value = PackagePath;
+
+        fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            Deserialize::deserialize(deserializer)
         }
     }
 

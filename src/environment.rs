@@ -15,12 +15,12 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub(crate) fn bind(&mut self, name: Symbol, value: Variant) {
-        self.names.push(name);
+    pub(crate) fn bind(&mut self, name: &str, value: Variant) {
+        self.names.push(name.into());
         self.values.push(value);
     }
 
-    pub(crate) fn lookup_name(&self, name: &Symbol) -> Fallible<&Variant> {
+    pub(crate) fn lookup_name(&self, name: &str) -> Fallible<&Variant> {
         let i = self
             .names
             .iter()
@@ -33,7 +33,7 @@ impl Environment {
 #[cfg(not(test))]
 impl ::std::fmt::Debug for Environment {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        ::std::fmt::Display::fmt("Environment", f)
+        f.write_str("Environment")
     }
 }
 

@@ -31,6 +31,13 @@ impl Error {
         self.inner.get_context()
     }
 
+    pub(crate) fn from_de<E>(err: E) -> Self
+    where
+        E: serde::de::Error,
+    {
+        ErrorKind::Parse(err.to_string()).into()
+    }
+
     pub(crate) fn unimplemented() -> Error {
         ErrorKind::Unimplemented.into()
     }
@@ -48,8 +55,14 @@ impl Error {
     }
 }
 
-#[derive(Clone, Debug, Fail, PartialEq)]
+#[derive(Debug, Fail)]
 pub(crate) enum ErrorKind {
+    #[fail(display = "parse error: {}", _0)]
+    Parse(String),
+
+    #[fail(display = "runtime error")]
+    Runtime,
+
     #[fail(display = "unimplemented")]
     Unimplemented,
 
@@ -76,7 +89,7 @@ pub(crate) enum ErrorKind {
 }
 
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
+    fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
         }
@@ -84,7 +97,7 @@ impl From<ErrorKind> for Error {
 }
 
 impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
 }

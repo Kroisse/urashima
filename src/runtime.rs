@@ -47,9 +47,12 @@ impl Runtime {
     pub fn execute(&self, path: impl AsRef<Path>) -> Fallible<()> {
         let path = path.as_ref();
         let f = std::fs::File::open(path).map_err(|_| ErrorKind::Load(path.to_owned()))?;
-        let prog: ScriptProgram =
+        let prog: serde_yaml::Value =
             serde_yaml::from_reader(f).map_err(|_| ErrorKind::Load(path.to_owned()))?;
         let mut capsule = self.root_capsule();
+        let prog: ScriptProgram = capsule
+            .parse(prog)
+            .map_err(|_| ErrorKind::Load(path.to_owned()))?;
         prog.eval(&mut capsule)?;
         Ok(())
     }
@@ -64,9 +67,10 @@ mod test {
     #[test]
     fn helloworld() -> Fallible<()> {
         let s = include_bytes!("../tests/helloworld.yaml");
-        let prog: ScriptProgram = serde_yaml::from_slice(&*s)?;
+        let prog: serde_yaml::Value = serde_yaml::from_slice(&*s)?;
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
+        let prog: ScriptProgram = capsule.parse(prog)?;
         capsule.eval(&prog)?;
         Ok(())
     }

@@ -4,7 +4,7 @@ use crate::{
     environment::Environment,
     error::Fallible,
     eval::Evaluate,
-    expr::{BlockExpression, Expression},
+    expr::{BlockExpression, ExprIndex},
 };
 
 #[derive(Clone, Debug)]
@@ -15,7 +15,7 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(ctx: &mut Capsule, parameters: Vec<Symbol>, body: BlockExpression) -> Self {
+    pub fn new(_ctx: &mut Capsule, parameters: Vec<Symbol>, body: BlockExpression) -> Self {
         let closure = Environment::default();
         Function {
             parameters,
@@ -24,7 +24,7 @@ impl Function {
         }
     }
 
-    pub fn call(&self, ctx: &mut Capsule, arguments: &[Expression]) -> Fallible<Variant> {
+    pub fn call(&self, ctx: &mut Capsule, arguments: &[ExprIndex]) -> Fallible<Variant> {
         let Function {
             parameters,
             body,
@@ -37,7 +37,7 @@ impl Function {
         let mut g = ctx.push();
         g.load(&closure);
         for (name, val) in parameters.iter().zip(args) {
-            g.bind(name.clone(), val);
+            g.bind(&name, val);
         }
         Ok(body.eval_in_context(&mut g)?)
     }

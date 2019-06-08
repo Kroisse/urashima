@@ -1,9 +1,10 @@
+pub(crate) mod arena;
 mod atomic;
 mod call;
 mod control_flow;
 mod operator;
 
-use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
 use crate::data::Variant;
@@ -11,17 +12,20 @@ use crate::error::Fallible;
 use crate::eval::Evaluate;
 
 pub use self::{
+    arena::{ExprArena, ExprIndex},
     atomic::{AtomicExpression, BlockExpression},
     call::CallExpression,
     control_flow::ControlFlowExpression,
     operator::OperatorExpression,
 };
 
-#[derive(Clone, Debug, Deserialize)]
+pub(crate) use self::arena::Alloc;
+
+#[derive(Clone, Debug, DeserializeSeed)]
 #[serde(untagged)]
 pub enum Expression {
     Atomic(AtomicExpression),
-    Operator(Box<OperatorExpression>),
+    Operator(OperatorExpression),
     Call(CallExpression),
     ControlFlow(ControlFlowExpression),
 }

@@ -1,24 +1,26 @@
-use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
 use crate::data::{Symbol, Variant};
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
-use super::Expression;
+use super::ExprIndex;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub enum CallExpression {
+    #[serde(alias = "Call")]
     FunctionCall {
-        callee: Box<Expression>,
+        callee: ExprIndex,
         #[serde(default)]
-        arguments: Vec<Expression>,
+        arguments: Vec<ExprIndex>,
     },
+    #[serde(alias = "Invoke")]
     MethodInvocation {
-        receiver: Box<Expression>,
+        receiver: ExprIndex,
         method: Symbol,
         #[serde(default)]
-        arguments: Vec<Expression>,
+        arguments: Vec<ExprIndex>,
     },
 }
 
@@ -40,8 +42,8 @@ impl Evaluate for CallExpression {
 
 fn eval_fn_call(
     ctx: &mut Capsule,
-    callee: &Expression,
-    arguments: &[Expression],
+    callee: &ExprIndex,
+    arguments: &[ExprIndex],
 ) -> Fallible<Variant> {
     let callee = callee.eval(ctx)?;
     if let Some(f) = callee.as_function() {
@@ -53,9 +55,9 @@ fn eval_fn_call(
 
 fn eval_invoke(
     ctx: &mut Capsule,
-    receiver: &Expression,
+    receiver: &ExprIndex,
     method: &Symbol,
-    _arguments: &[Expression],
+    _arguments: &[ExprIndex],
 ) -> Fallible<Variant> {
     let receiver = receiver.eval(ctx)?;
     if method == "println" {

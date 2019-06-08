@@ -12,8 +12,10 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 chashmap = "2.2"
 failure = "0.1.5"
+generational-arena = "0.2"
 log = "0.4"
 serde = { version = "1.0.91", features = ["derive"] }
+serde_derive_urashima = { git = "https://github.com/Kroisse/serde.git", branch = "derive_urashima" }
 serde_yaml = "0.8"
 smallvec = "0.6"
 string_cache = "0.7"

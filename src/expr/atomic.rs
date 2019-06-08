@@ -1,16 +1,15 @@
-use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
-use super::Expression;
+use super::ExprIndex;
 use crate::{
     capsule::Capsule,
     data::{record::Key, Function, Symbol, Variant},
-    environment::Environment,
     error::{ErrorKind, Fallible},
     eval::Evaluate,
     statement::Statement,
 };
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub enum AtomicExpression {
     False,
     True,
@@ -21,7 +20,7 @@ pub enum AtomicExpression {
         depth: usize,
         index: usize,
     },
-    Record(Vec<(Key, Expression)>),
+    Record(Vec<(Key, ExprIndex)>),
     Block(BlockExpression),
     Fn {
         parameters: Vec<Symbol>,
@@ -29,7 +28,7 @@ pub enum AtomicExpression {
     },
 }
 
-impl Evaluate for AtomicExpression {
+impl<'arena> Evaluate for AtomicExpression {
     type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
@@ -47,10 +46,10 @@ impl Evaluate for AtomicExpression {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub struct BlockExpression {
     statements: Vec<Statement>,
-    returns: Box<Expression>,
+    returns: ExprIndex,
 }
 
 impl BlockExpression {
@@ -71,7 +70,7 @@ impl Evaluate for BlockExpression {
     }
 }
 
-fn eval_record(ctx: &mut Capsule, exprs: &[(Key, Expression)]) -> Fallible<Variant> {
+fn eval_record(ctx: &mut Capsule, exprs: &[(Key, ExprIndex)]) -> Fallible<Variant> {
     let mut items = Vec::new();
     let mut keys = Vec::new();
     for (key, expr) in exprs {
@@ -93,19 +92,20 @@ fn expr_fn(ctx: &mut Capsule, parameters: &[Symbol], body: &BlockExpression) -> 
 #[cfg(test)]
 mod test {
     use failure::Fallible;
-    use serde_json::{from_value, json};
+    use serde_json::json;
 
     use super::*;
     use crate::runtime::Runtime;
 
     #[test]
     fn eval_unit_record() -> Fallible<()> {
-        let expr: Expression = from_value(json!({
+        let expr = json!({
             "Record": [],
-        }))?;
+        });
 
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
+        let expr: ExprIndex = capsule.parse(expr)?;
         let value = capsule.eval(&expr)?;
         let rec = value.as_record().unwrap();
         assert!(rec.fields.is_empty());
@@ -115,17 +115,18 @@ mod test {
 
     #[test]
     fn eval_block() -> Fallible<()> {
-        let expr: Expression = from_value(json!({
+        let expr = json!({
             "Block": {
                 "statements": [
                     {"Binding": ["foo", {"Integral": 42}]},
                 ],
                 "returns": {"Binding": {"index": 0}},
             },
-        }))?;
+        });
 
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
+        let expr: ExprIndex = capsule.parse(expr)?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(42));
 
@@ -137,7 +138,7 @@ mod test {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
 
-        let decl: Statement = from_value(json!({
+        let decl: Statement = capsule.parse(json!({
             "Binding": ["answer_to_the_ultimate_question_of_life_the_universe_and_everything", {
                 "Fn": {
                     "parameters": [],
@@ -157,7 +158,7 @@ mod test {
             },
         });
 
-        let expr: Expression = from_value(code)?;
+        let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(42));
 
@@ -169,7 +170,7 @@ mod test {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
 
-        let decl: Statement = from_value(json!({
+        let decl: Statement = capsule.parse(json!({
             "Binding": ["increase", {
                 "Fn": {
                     "parameters": ["n"],
@@ -186,13 +187,13 @@ mod test {
         capsule.eval(&decl)?;
 
         let code = json!({
-            "FunctionCall": {
+            "Call": {
                 "callee": {"Binding": {"index": 0}},
                 "arguments": [{"Integral": 1}],
             },
         });
 
-        let expr: Expression = from_value(code)?;
+        let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(2));
 
@@ -204,11 +205,11 @@ mod test {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
 
-        let stmts: Vec<Statement> = from_value(json!([
-            {
+        let stmts = vec![
+            json!({
                 "Binding": ["ANSWER", {"Integral": 42}]
-            },
-            {
+            }),
+            json!({
                 "Binding": ["increase", {
                     "Fn": {
                         "parameters": ["n"],
@@ -221,20 +222,21 @@ mod test {
                         }
                     }
                 }]
-            },
-        ]))?;
-        for s in &stmts {
-            capsule.eval(s)?;
+            }),
+        ];
+        for s in stmts {
+            let stmt: Statement = capsule.parse(s)?;
+            capsule.eval(&stmt)?;
         }
 
         let code = json!({
-            "FunctionCall": {
+            "Call": {
                 "callee": {"Binding": {"index": 1}},
                 "arguments": [{"Integral": 1}],
             },
         });
 
-        let expr: Expression = from_value(code)?;
+        let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(43));
 

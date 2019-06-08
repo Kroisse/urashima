@@ -1,16 +1,16 @@
-use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
 use crate::data::Variant;
 use crate::error::{ErrorKind, Fallible};
 use crate::eval::Evaluate;
 
-use super::{BlockExpression, Expression};
+use super::{BlockExpression, ExprIndex};
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub enum ControlFlowExpression {
     If {
-        cond: Box<Expression>,
+        cond: ExprIndex,
         then_blk: BlockExpression,
         else_blk: Option<BlockExpression>,
     },
@@ -27,7 +27,7 @@ impl Evaluate for ControlFlowExpression {
                 cond,
                 then_blk,
                 else_blk,
-            } => eval_if(ctx, cond, then_blk, else_blk.as_ref()),
+            } => eval_if(ctx, *cond, then_blk, else_blk.as_ref()),
             Loop(blk) => eval_loop(ctx, blk),
         }
     }
@@ -35,7 +35,7 @@ impl Evaluate for ControlFlowExpression {
 
 fn eval_if(
     ctx: &mut Capsule,
-    cond: &Expression,
+    cond: ExprIndex,
     then_blk: &BlockExpression,
     else_blk: Option<&BlockExpression>,
 ) -> Fallible<Variant> {
@@ -70,7 +70,7 @@ fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Variant> {
 #[cfg(test)]
 mod test {
     use failure::Fallible;
-    use serde_json::{from_value, json};
+    use serde_json::json;
 
     use super::*;
     use crate::runtime::Runtime;
@@ -94,12 +94,12 @@ mod test {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
 
-        let expr: Expression = from_value(code.clone())?;
+        let expr: ExprIndex = capsule.parse(code.clone())?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(1));
 
         code["If"]["cond"] = serde_json::Value::String("False".to_owned());
-        let expr: Expression = from_value(code)?;
+        let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
         assert_eq!(value.to_int(), Some(2));
 

@@ -1,6 +1,7 @@
 use std::iter::FromIterator;
 
 use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
 use super::{Symbol, Variant};
 
@@ -9,11 +10,15 @@ pub struct Record {
     pub(crate) fields: Vec<Field>,
 }
 
+impl Record {
+    pub fn unit() -> Self {
+        Record { fields: Vec::new() }
+    }
+}
+
 impl Default for Record {
     fn default() -> Self {
-        Record {
-            fields: Vec::default(),
-        }
+        Record::unit()
     }
 }
 
@@ -39,7 +44,7 @@ pub enum Field {
     Label { key: Symbol, value: Variant },
 }
 
-#[derive(Clone, Eq, Debug, Deserialize, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Eq, Debug, Deserialize, DeserializeSeed, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Key {
     Index(usize),
     Label(Symbol),

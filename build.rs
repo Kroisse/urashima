@@ -3,31 +3,10 @@ use std::path::Path;
 
 const ATOMS: &[&str] = &[
     // keywords
-    "assert",
-    "break",
-    "continue",
-    "else",
-    "false",
-    "fn",
-    "for",
-    "if",
-    "new",
-    "package",
-    "pub",
-    "return",
-    "static",
-    "switch",
-    "syntax",
-    "test",
-    "true",
-    "type",
-    "use",
-    "var",
-    "yield",
-
+    "assert", "break", "continue", "else", "false", "fn", "for", "if", "new", "package", "pub",
+    "return", "static", "switch", "syntax", "test", "true", "type", "use", "var", "yield",
     // stdlib
-    "naru",
-    "core",
+    "naru", "core", "println",
 ];
 
 fn main() {

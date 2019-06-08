@@ -22,7 +22,7 @@ pub enum Variant {
 
 impl Variant {
     pub fn unit() -> Self {
-        Variant::Record(Record::default())
+        Variant::Record(Record::unit())
     }
 
     pub fn into_ref(self) -> Self {
@@ -77,12 +77,6 @@ impl From<i64> for Variant {
 impl From<&str> for Variant {
     fn from(val: &str) -> Self {
         Variant::Str(val.into())
-    }
-}
-
-impl From<String> for Variant {
-    fn from(val: String) -> Self {
-        Variant::Str(val)
     }
 }
 

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     capsule::Capsule,
@@ -9,7 +9,7 @@ use crate::{
     program::PackageDep,
 };
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, DeserializeSeed)]
 pub enum Statement {
     Binding(Symbol, Expression),
     Expr(Expression),
@@ -27,7 +27,7 @@ impl Evaluate for Statement {
         match self {
             Statement::Binding(name, expr) => {
                 let val = expr.eval(ctx)?;
-                ctx.bind(name.clone(), val);
+                ctx.bind(name, val);
                 Ok(())
             }
             Statement::Expr(expr) => {
@@ -45,24 +45,22 @@ impl Evaluate for Statement {
 #[cfg(test)]
 mod test {
     use failure::Fallible;
-    use serde_json::{from_value, json};
+    use serde_json::json;
 
     use super::*;
     use crate::runtime::Runtime;
 
     #[test]
     fn eval_bind_literal() -> Fallible<()> {
-        let stmt: Statement = from_value(json!({
-            "Binding": ["foo", {"Integral": 42}],
-        }))?;
-
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
+        let stmt: Statement = capsule.parse(json!({
+            "Binding": ["foo", {"Integral": 42}],
+        }))?;
         capsule.eval(&stmt)?;
         let env = capsule.environments.last().unwrap();
         assert_eq!(env.values[0].to_int(), Some(42));
         assert_eq!(&env.names[0], "foo");
-
         Ok(())
     }
 }
