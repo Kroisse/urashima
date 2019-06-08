@@ -43,7 +43,7 @@ impl Evaluate for OperatorExpression {
             }
             New(expr) => {
                 let val = expr.eval(ctx)?;
-                Ok(val.into_ref())
+                Ok(Variant::Ref(ctx.arena.insert(val)))
             }
         }
     }

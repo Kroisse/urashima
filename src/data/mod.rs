@@ -23,3 +23,22 @@ mod internal {
 }
 
 pub use self::{function::Function, internal::Symbol, record::Record, variant::Variant};
+
+#[cfg(test)]
+mod test {
+    use std::mem;
+
+    use super::Symbol;
+
+    #[test]
+    fn symbol_size() {
+        dbg!(mem::size_of::<Symbol>());
+        unsafe {
+            dbg!(mem::transmute::<_, [u8; 8]>(symbol!("true")));
+            dbg!(mem::transmute::<_, [u8; 8]>(Symbol::from("asdf")));
+            dbg!(mem::transmute::<_, [u8; 8]>(Symbol::from(
+                "the quick fox jumps over the lazy brown dog"
+            )));
+        }
+    }
+}

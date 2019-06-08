@@ -42,3 +42,15 @@ impl Function {
         Ok(body.eval_in_context(&mut g)?)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::mem;
+
+    use super::*;
+
+    #[test]
+    fn function_size() {
+        dbg!(mem::size_of::<Function>());
+    }
+}

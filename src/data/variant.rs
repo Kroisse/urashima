@@ -1,32 +1,21 @@
-use std::rc::Rc;
-
-use serde::Deserialize;
+use crate::arena::{Arena, Index};
 
 use super::{Function, Record};
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug)]
 pub enum Variant {
     Bool(bool),
     Int(i64),
     // Nat(u32),
     Str(String),
     Record(Record),
-
-    #[serde(skip)]
-    Fn(Function),
-
-    #[serde(skip)]
-    Ref(Rc<Variant>),
+    Fn(Index<Function>),
+    Ref(Index<Variant>),
 }
 
 impl Variant {
     pub fn unit() -> Self {
         Variant::Record(Record::unit())
-    }
-
-    pub fn into_ref(self) -> Self {
-        Variant::Ref(Rc::new(self))
     }
 
     pub fn as_record(&self) -> Option<&Record> {
@@ -37,9 +26,9 @@ impl Variant {
         }
     }
 
-    pub fn as_function(&self) -> Option<&Function> {
-        if let Variant::Fn(val) = self {
-            Some(val)
+    pub fn as_function<'a>(&self, ctx: &'a Arena<Function>) -> Option<&'a Function> {
+        if let Variant::Fn(idx) = self {
+            ctx.get(*idx)
         } else {
             None
         }
@@ -80,8 +69,14 @@ impl From<&str> for Variant {
     }
 }
 
-impl From<Function> for Variant {
-    fn from(val: Function) -> Self {
-        Variant::Fn(val)
+#[cfg(test)]
+mod test {
+    use std::mem;
+
+    use super::*;
+
+    #[test]
+    fn variant_size() {
+        dbg!(mem::size_of::<Variant>());
     }
 }

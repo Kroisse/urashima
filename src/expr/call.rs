@@ -46,11 +46,8 @@ fn eval_fn_call(
     arguments: &[ExprIndex],
 ) -> Fallible<Variant> {
     let callee = callee.eval(ctx)?;
-    if let Some(f) = callee.as_function() {
-        f.call(ctx, arguments)
-    } else {
-        Err(ErrorKind::Type.into())
-    }
+    let f = callee.as_function(&ctx.fn_arena).ok_or(ErrorKind::Type)?.clone();
+    f.call(ctx, arguments)
 }
 
 fn eval_invoke(

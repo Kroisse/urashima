@@ -4,8 +4,9 @@ use serde::Deserialize;
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Symbol, Variant};
+use crate::arena::Index;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct Record {
     pub(crate) fields: Vec<Field>,
 }
@@ -22,10 +23,10 @@ impl Default for Record {
     }
 }
 
-impl FromIterator<(Key, Variant)> for Record {
+impl FromIterator<(Key, Index<Variant>)> for Record {
     fn from_iter<T>(iter: T) -> Self
     where
-        T: IntoIterator<Item = (Key, Variant)>,
+        T: IntoIterator<Item = (Key, Index<Variant>)>,
     {
         let fields = iter
             .into_iter()
@@ -38,10 +39,10 @@ impl FromIterator<(Key, Variant)> for Record {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug)]
 pub enum Field {
-    Index { key: usize, value: Variant },
-    Label { key: Symbol, value: Variant },
+    Index { key: usize, value: Index<Variant> },
+    Label { key: Symbol, value: Index<Variant> },
 }
 
 #[derive(Clone, Eq, Debug, Deserialize, DeserializeSeed, Hash, Ord, PartialEq, PartialOrd)]

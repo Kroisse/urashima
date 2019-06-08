@@ -74,10 +74,11 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Key, ExprIndex)]) -> Fallible<Varian
     let mut items = Vec::new();
     let mut keys = Vec::new();
     for (key, expr) in exprs {
-        let val = expr.eval(ctx)?;
         if let Err(i) = keys.binary_search(key) {
             keys.insert(i, key.clone());
-            items.push((key.clone(), val));
+            let val = expr.eval(ctx)?;
+            let idx = ctx.arena.insert(val);
+            items.push((key.clone(), idx));
         } else {
             return Err(ErrorKind::Value.into());
         }
@@ -86,7 +87,9 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Key, ExprIndex)]) -> Fallible<Varian
 }
 
 fn expr_fn(ctx: &mut Capsule, parameters: &[Symbol], body: &BlockExpression) -> Fallible<Variant> {
-    Ok(Function::new(ctx, parameters.to_vec(), body.clone()).into())
+    let f = Function::new(ctx, parameters.to_vec(), body.clone());
+    let idx = ctx.fn_arena.insert(f);
+    Ok(Variant::Fn(idx))
 }
 
 #[cfg(test)]

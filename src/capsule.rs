@@ -4,17 +4,22 @@ use std::sync::{Arc, Weak};
 
 use serde::de::{DeserializeSeed, Deserializer};
 
-use crate::data::Variant;
-use crate::environment::{Environment, Package};
-use crate::error::{Error, ErrorKind, Fallible};
-use crate::eval::Evaluate;
-use crate::expr::{Alloc, ExprArena};
-use crate::program::{PackagePath, PackageProgram};
-use crate::runtime::RuntimeContextRef;
+use crate::{
+    arena::Arena,
+    data::{Function, Variant},
+    environment::{Environment, Package},
+    error::{Error, ErrorKind, Fallible},
+    eval::Evaluate,
+    expr::{Alloc, ExprArena},
+    program::{PackagePath, PackageProgram},
+    runtime::RuntimeContextRef,
+};
 
 pub struct Capsule {
     pub(crate) ctx: RuntimeContextRef,
     pub(crate) environments: Vec<Environment>,
+    pub(crate) fn_arena: Arena<Function>,
+    pub(crate) arena: Arena<Variant>,
     pub(crate) expr_arena: ExprArena,
 }
 
@@ -42,6 +47,8 @@ impl Capsule {
         Capsule {
             ctx,
             environments: vec![Default::default()],
+            fn_arena: Arena::new(),
+            arena: Arena::new(),
             expr_arena: ExprArena::new(),
         }
     }
