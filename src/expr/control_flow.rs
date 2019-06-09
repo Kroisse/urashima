@@ -3,7 +3,7 @@ use serde_derive_urashima::DeserializeSeed;
 use crate::{
     capsule::Capsule,
     data::Variant,
-    error::{Error, ErrorKind, Fallible},
+    error::{ControlFlow, Error, Fallible},
     eval::Evaluate,
 };
 
@@ -57,10 +57,10 @@ fn eval_if(
 fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Variant> {
     loop {
         if let Err(e) = blk.eval(ctx) {
-            match e.kind() {
-                ErrorKind::Break => break,
-                ErrorKind::Continue => continue,
-                _ => {
+            match e.as_control_flow() {
+                Some(ControlFlow::Break) => break,
+                Some(ControlFlow::Continue) => continue,
+                None => {
                     return Err(e);
                 }
             }

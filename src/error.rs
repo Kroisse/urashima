@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -27,10 +28,6 @@ impl fmt::Display for Error {
 }
 
 impl Error {
-    pub(crate) fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-
     pub(crate) fn from_de<E>(err: E) -> Self
     where
         E: serde::de::Error,
@@ -38,8 +35,16 @@ impl Error {
         ErrorKind::Parse(err.to_string()).into()
     }
 
+    pub(crate) fn runtime() -> Error {
+        ErrorKind::Runtime.into()
+    }
+
     pub(crate) fn unimplemented() -> Error {
         ErrorKind::Unimplemented.into()
+    }
+
+    pub(crate) fn name() -> Error {
+        ErrorKind::Name.into()
     }
 
     pub(crate) fn invalid_type(expected: impl Into<Symbol>) -> Error {
@@ -49,21 +54,40 @@ impl Error {
         .into()
     }
 
-    pub(crate) fn name() -> Error {
-        ErrorKind::Name.into()
+    pub(crate) fn value(reason: impl Into<Cow<'static, str>>) -> Error {
+        ErrorKind::Value {
+            reason: reason.into(),
+        }
+        .into()
+    }
+
+    pub(crate) fn import(path: &PackagePath) -> Error {
+        ErrorKind::Import(path.clone()).into()
+    }
+
+    pub(crate) fn load(path: impl Into<PathBuf>) -> Error {
+        ErrorKind::Load(path.into()).into()
     }
 
     pub(crate) fn loop_break() -> Error {
-        ErrorKind::Break.into()
+        ErrorKind::ControlFlow(ControlFlow::Break).into()
     }
 
     pub(crate) fn loop_continue() -> Error {
-        ErrorKind::Continue.into()
+        ErrorKind::ControlFlow(ControlFlow::Continue).into()
+    }
+
+    pub(crate) fn as_control_flow(&self) -> Option<&ControlFlow> {
+        if let ErrorKind::ControlFlow(cf) = self.inner.get_context() {
+            Some(cf)
+        } else {
+            None
+        }
     }
 }
 
 #[derive(Debug, Fail)]
-pub(crate) enum ErrorKind {
+enum ErrorKind {
     #[fail(display = "parse error: {}", _0)]
     Parse(String),
 
@@ -79,8 +103,8 @@ pub(crate) enum ErrorKind {
     #[fail(display = "type error: expected '{}'", expected)]
     Type { expected: Symbol },
 
-    #[fail(display = "value error")]
-    Value,
+    #[fail(display = "value error: {}", reason)]
+    Value { reason: Cow<'static, str> },
 
     #[fail(display = "import error")]
     Import(PackagePath),
@@ -88,11 +112,8 @@ pub(crate) enum ErrorKind {
     #[fail(display = "load error")]
     Load(PathBuf),
 
-    #[fail(display = "unexpected break statement")]
-    Break,
-
-    #[fail(display = "unexpected continue statement")]
-    Continue,
+    #[fail(display = "unexpected {} statement", _0)]
+    ControlFlow(ControlFlow),
 }
 
 impl From<ErrorKind> for Error {
@@ -110,3 +131,24 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 pub type Fallible<T> = Result<T, Error>;
+
+#[derive(Debug)]
+pub enum ControlFlow {
+    Break,
+    Continue,
+}
+
+impl ControlFlow {
+    pub fn as_symbol(&self) -> Symbol {
+        match self {
+            ControlFlow::Break => symbol!("break"),
+            ControlFlow::Continue => symbol!("continue"),
+        }
+    }
+}
+
+impl fmt::Display for ControlFlow {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.as_symbol())
+    }
+}

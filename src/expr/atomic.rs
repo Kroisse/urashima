@@ -4,7 +4,7 @@ use super::ExprIndex;
 use crate::{
     capsule::Capsule,
     data::{record::Key, Function, Symbol, Variant},
-    error::{ErrorKind, Fallible},
+    error::{Error, Fallible},
     eval::Evaluate,
     statement::Statement,
 };
@@ -80,7 +80,7 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Key, ExprIndex)]) -> Fallible<Varian
             let idx = ctx.arena.insert(val);
             items.push((key.clone(), idx));
         } else {
-            return Err(ErrorKind::Value.into());
+            return Err(Error::value("All labels in the record should be unique"));
         }
     }
     Ok(Variant::Record(items.into_iter().collect()))

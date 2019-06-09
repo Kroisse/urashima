@@ -8,7 +8,7 @@ use crate::{
     arena::Arena,
     data::{Function, Variant},
     environment::{Environment, Package},
-    error::{Error, ErrorKind, Fallible},
+    error::{Error, Fallible},
     eval::Evaluate,
     expr::{Alloc, ExprArena},
     program::{PackagePath, PackageProgram},
@@ -69,7 +69,7 @@ impl Capsule {
     }
 
     pub(crate) fn load(&mut self, path: PackagePath) -> Fallible<Arc<Package>> {
-        let mut res = Err(ErrorKind::Import(path.clone()).into());
+        let mut res = Err(Error::import(&path));
         let ctx = Arc::clone(&self.ctx);
         ctx.packages.alter(path.clone(), |mut entry| {
             if let Some(pkg) = entry.as_ref().and_then(Weak::upgrade) {
@@ -166,7 +166,7 @@ mod internal {
     use std::fs::File;
     use std::path::{Path, PathBuf};
 
-    use crate::error::{ErrorKind, Fallible};
+    use crate::error::{Error, Fallible};
     use crate::program::PackagePath;
 
     pub(super) fn load(paths: &[PathBuf], pkg_path: &PackagePath) -> Fallible<serde_yaml::Value> {
@@ -179,7 +179,7 @@ mod internal {
                 return Ok(from_path(&path).unwrap());
             }
         }
-        Err(ErrorKind::Import(pkg_path.clone()).into())
+        Err(Error::import(pkg_path))
     }
 
     fn from_path(path: impl AsRef<Path>) -> failure::Fallible<serde_yaml::Value> {

@@ -6,7 +6,7 @@ use chashmap::CHashMap;
 use crate::{
     capsule::Capsule,
     environment::Package,
-    error::{ErrorKind, Fallible},
+    error::{Error, Fallible},
     eval::Evaluate,
     program::{PackagePath, ScriptProgram},
 };
@@ -46,13 +46,10 @@ impl Runtime {
 
     pub fn execute(&self, path: impl AsRef<Path>) -> Fallible<()> {
         let path = path.as_ref();
-        let f = std::fs::File::open(path).map_err(|_| ErrorKind::Load(path.to_owned()))?;
-        let prog: serde_yaml::Value =
-            serde_yaml::from_reader(f).map_err(|_| ErrorKind::Load(path.to_owned()))?;
+        let f = std::fs::File::open(path).map_err(|_| Error::load(path))?;
+        let prog: serde_yaml::Value = serde_yaml::from_reader(f).map_err(|_| Error::load(path))?;
         let mut capsule = self.root_capsule();
-        let prog: ScriptProgram = capsule
-            .parse(prog)
-            .map_err(|_| ErrorKind::Load(path.to_owned()))?;
+        let prog: ScriptProgram = capsule.parse(prog)?;
         prog.eval(&mut capsule)?;
         Ok(())
     }

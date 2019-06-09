@@ -9,7 +9,7 @@ use crate::{
     arena::{Arena, Index},
     capsule::Capsule,
     data::Variant,
-    error::{ErrorKind, Fallible},
+    error::{Error, Fallible},
     eval::Evaluate,
 };
 
@@ -31,7 +31,7 @@ impl Evaluate for ExprIndex {
         let expr = ctx
             .expr_arena
             .get(*self)
-            .ok_or_else(|| ErrorKind::Runtime)?
+            .ok_or_else(Error::runtime)?
             .clone();
         expr.eval(ctx)
     }
