@@ -16,8 +16,10 @@
 #![deny(rust_2018_idioms)]
 #![cfg_attr(test, recursion_limit = "128")]
 
-mod arena;
+#[macro_use]
 mod data;
+
+mod arena;
 mod environment;
 mod eval;
 mod expr;

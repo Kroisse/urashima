@@ -2,7 +2,7 @@ use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
 use crate::data::Variant;
-use crate::error::{ErrorKind, Fallible};
+use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 
 use super::ExprIndex;
@@ -30,7 +30,7 @@ impl Evaluate for OperatorExpression {
                 let b = b.eval(ctx)?;
                 match (a, b) {
                     (Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a + b)),
-                    _ => Err(ErrorKind::Type.into()),
+                    _ => Err(Error::invalid_type(symbol!("int"))),
                 }
             }
             Subtraction(a, b) => {
@@ -38,7 +38,7 @@ impl Evaluate for OperatorExpression {
                 let b = b.eval(ctx)?;
                 match (a, b) {
                     (Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a - b)),
-                    _ => Err(ErrorKind::Type.into()),
+                    _ => Err(Error::invalid_type(symbol!("int"))),
                 }
             }
             New(expr) => {

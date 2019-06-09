@@ -2,7 +2,7 @@ use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
 use crate::data::{Symbol, Variant};
-use crate::error::{ErrorKind, Fallible};
+use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 
 use super::ExprIndex;
@@ -46,7 +46,10 @@ fn eval_fn_call(
     arguments: &[ExprIndex],
 ) -> Fallible<Variant> {
     let callee = callee.eval(ctx)?;
-    let f = callee.as_function(&ctx.fn_arena).ok_or(ErrorKind::Type)?.clone();
+    let f = callee
+        .as_function(&ctx.fn_arena)
+        .ok_or_else(|| Error::invalid_type(symbol!("fn")))?
+        .clone();
     f.call(ctx, arguments)
 }
 
@@ -69,9 +72,9 @@ fn eval_invoke(
                 ctx.write(b"\n")?;
                 Ok(Variant::unit())
             }
-            _ => Err(ErrorKind::Unimplemented.into()),
+            _ => Err(Error::unimplemented()),
         }
     } else {
-        Err(ErrorKind::Unimplemented.into())
+        Err(Error::unimplemented())
     }
 }

@@ -34,11 +34,12 @@ mod test {
     fn symbol_size() {
         dbg!(mem::size_of::<Symbol>());
         unsafe {
-            dbg!(mem::transmute::<_, [u8; 8]>(symbol!("true")));
-            dbg!(mem::transmute::<_, [u8; 8]>(Symbol::from("asdf")));
-            dbg!(mem::transmute::<_, [u8; 8]>(Symbol::from(
+            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(symbol!("true"))));
+            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(Symbol::from("true"))));
+            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(Symbol::from("asdf"))));
+            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(Symbol::from(
                 "the quick fox jumps over the lazy brown dog"
-            )));
+            ))));
         }
     }
 }

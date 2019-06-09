@@ -1,9 +1,11 @@
 use serde_derive_urashima::DeserializeSeed;
 
-use crate::capsule::Capsule;
-use crate::data::Variant;
-use crate::error::{ErrorKind, Fallible};
-use crate::eval::Evaluate;
+use crate::{
+    capsule::Capsule,
+    data::Variant,
+    error::{Error, ErrorKind, Fallible},
+    eval::Evaluate,
+};
 
 use super::{BlockExpression, ExprIndex};
 
@@ -48,7 +50,7 @@ fn eval_if(
             Ok(Variant::unit())
         }
     } else {
-        Err(ErrorKind::Type.into())
+        Err(Error::invalid_type(symbol!("bool")))
     }
 }
 

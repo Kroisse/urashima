@@ -13,6 +13,7 @@ pub enum Variant {
     Ref(Index<Variant>),
 }
 
+#[allow(dead_code)]
 impl Variant {
     pub fn unit() -> Self {
         Variant::Record(Record::unit())

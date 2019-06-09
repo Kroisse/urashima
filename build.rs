@@ -6,7 +6,7 @@ const ATOMS: &[&str] = &[
     "assert", "break", "continue", "else", "false", "fn", "for", "if", "new", "package", "pub",
     "return", "static", "switch", "syntax", "test", "true", "type", "use", "var", "yield",
     // stdlib
-    "naru", "core", "println",
+    "naru", "core", "bool", "int", "nat", "rat", "ref", "result", "println",
 ];
 
 fn main() {
