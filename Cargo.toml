@@ -1,3 +1,9 @@
+[workspace]
+members = [
+    "libnaru",
+    "naru",
+]
+
 [package]
 name = "urashima"
 description = "Proof-of-concept Runtime for Naru Programming Language"
@@ -5,9 +11,6 @@ version = "0.1.0"
 authors = ["Eunchong Yu <kroisse@gmail.com>"]
 license = "Apache-2.0"
 edition = "2018"
-
-[lib]
-crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 chashmap = "2.2"
@@ -20,9 +23,6 @@ serde_yaml = "0.8"
 smallvec = "0.6"
 string_cache = "0.7"
 
-env_logger = "0.6"
-termcolor = "1.0"
-
 [build-dependencies]
 string_cache_codegen = "0.4"
 
@@ -32,3 +32,4 @@ serde_json = "1.0.39"
 [profile.release]
 opt-level = "z"
 lto = true
+codegen-units = 1

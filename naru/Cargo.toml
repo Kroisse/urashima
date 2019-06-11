@@ -1,0 +1,10 @@
+[package]
+name = "naru"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+license = "Apache-2.0"
+edition = "2018"
+
+[dependencies]
+env_logger = "0.6"
+urashima = { path = ".." }

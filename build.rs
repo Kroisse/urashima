@@ -10,8 +10,10 @@ const ATOMS: &[&str] = &[
 ];
 
 fn main() {
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+
     string_cache_codegen::AtomType::new("data::Symbol", "symbol!")
         .atoms(ATOMS)
-        .write_to_file(&Path::new(&env::var("OUT_DIR").unwrap()).join("symbol.rs"))
-        .unwrap()
+        .write_to_file(&Path::new(&out_dir).join("symbol.rs"))
+        .unwrap();
 }

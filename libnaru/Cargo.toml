@@ -1,0 +1,16 @@
+[package]
+name = "libnaru"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "naru"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+guard = "0.5"
+urashima = { path = ".." }
+
+[build-dependencies]
+cbindgen = "0.8"
