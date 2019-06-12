@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::ops;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Arena<T>(generational_arena::Arena<T>);
 
 #[derive(Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
@@ -15,6 +15,7 @@ impl<T> Clone for Index<T> {
 
 impl<T> Copy for Index<T> {}
 
+#[allow(dead_code)]
 impl<T> Arena<T> {
     pub fn new() -> Self {
         Arena(generational_arena::Arena::new())
@@ -38,6 +39,12 @@ impl<T> Arena<T> {
 
     pub fn get_mut(&mut self, i: Index<T>) -> Option<&mut T> {
         self.0.get_mut(i.0)
+    }
+}
+
+impl<T> Default for Arena<T> {
+    fn default() -> Self {
+        Arena(generational_arena::Arena::new())
     }
 }
 

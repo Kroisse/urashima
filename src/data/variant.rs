@@ -1,4 +1,4 @@
-use crate::arena::{Arena, Index};
+use crate::{arena::Index, capsule::Capsule};
 
 use super::{Function, Record};
 
@@ -27,9 +27,9 @@ impl Variant {
         }
     }
 
-    pub fn as_function<'a>(&self, ctx: &'a Arena<Function>) -> Option<&'a Function> {
+    pub fn as_function<'a>(&self, ctx: &'a Capsule) -> Option<&'a Function> {
         if let Variant::Fn(idx) = self {
-            ctx.get(*idx)
+            ctx.environment.get_function(*idx)
         } else {
             None
         }

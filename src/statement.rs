@@ -58,7 +58,7 @@ mod test {
             "Binding": ["foo", {"Integral": 42}],
         }))?;
         capsule.eval(&stmt)?;
-        let env = capsule.environments.last().unwrap();
+        let env = capsule.environment;
         assert_eq!(env.values[0].to_int(), Some(42));
         assert_eq!(&env.names[0], "foo");
         Ok(())

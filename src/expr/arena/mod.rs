@@ -16,9 +16,9 @@ use crate::{
 pub type ExprArena = Arena<Expression>;
 pub type ExprIndex = Index<Expression>;
 
-pub(crate) struct Alloc<'a, T>(&'a mut ExprArena, PhantomData<T>);
+pub(crate) struct Alloc<'a, T>(&'a mut Capsule, PhantomData<T>);
 
-impl ExprArena {
+impl Capsule {
     pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
         Alloc(self, PhantomData)
     }
@@ -37,19 +37,19 @@ impl Evaluate for ExprIndex {
     }
 }
 
-impl<'a, 'de, T> From<&'a mut ExprArena> for Alloc<'a, T> {
-    fn from(arena: &'a mut ExprArena) -> Self {
+impl<'a, 'de, T> From<&'a mut Capsule> for Alloc<'a, T> {
+    fn from(arena: &'a mut Capsule) -> Self {
         arena.alloc()
     }
 }
 
 impl<'a, 'de, T> Alloc<'a, T> {
     pub(crate) fn arena(&mut self) -> &mut ExprArena {
-        &mut *self.0
+        &mut self.0.expr_arena
     }
 
     pub(crate) fn borrow<U>(&mut self) -> Alloc<'_, U> {
-        Alloc(self.arena(), PhantomData)
+        Alloc(&mut *self.0, PhantomData)
     }
 }
 

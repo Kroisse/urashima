@@ -47,7 +47,7 @@ fn eval_fn_call(
 ) -> Fallible<Variant> {
     let callee = callee.eval(ctx)?;
     let f = callee
-        .as_function(&ctx.fn_arena)
+        .as_function(&ctx)
         .ok_or_else(|| Error::invalid_type(symbol!("fn")))?
         .clone();
     f.call(ctx, arguments)

@@ -5,8 +5,7 @@ use std::sync::{Arc, Weak};
 use serde::de::{DeserializeSeed, Deserializer};
 
 use crate::{
-    arena::Arena,
-    data::{Function, Variant},
+    data::Variant,
     environment::{Environment, Package},
     error::{Error, Fallible},
     eval::Evaluate,
@@ -17,14 +16,12 @@ use crate::{
 
 pub struct Capsule {
     pub(crate) ctx: RuntimeContextRef,
-    pub(crate) environments: Vec<Environment>,
-    pub(crate) fn_arena: Arena<Function>,
-    pub(crate) arena: Arena<Variant>,
+    pub(crate) environment: Environment,
     pub(crate) expr_arena: ExprArena,
 }
 
 pub(crate) trait Parse<'a>: Sized {
-    fn parse<D>(arena: &'a mut ExprArena, deserializer: D) -> Fallible<Self>
+    fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
     where
         D: for<'de> Deserializer<'de>;
 }
@@ -34,11 +31,11 @@ where
     T: Sized,
     Alloc<'a, T>: for<'de> DeserializeSeed<'de, Value = T>,
 {
-    fn parse<D>(arena: &'a mut ExprArena, deserializer: D) -> Fallible<Self>
+    fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
     where
         D: for<'de> Deserializer<'de>,
     {
-        DeserializeSeed::deserialize(arena.alloc::<T>(), deserializer).map_err(Error::from_de)
+        DeserializeSeed::deserialize(capsule.alloc::<T>(), deserializer).map_err(Error::from_de)
     }
 }
 
@@ -46,9 +43,7 @@ impl Capsule {
     pub(crate) fn root(ctx: RuntimeContextRef) -> Capsule {
         Capsule {
             ctx,
-            environments: vec![Default::default()],
-            fn_arena: Arena::new(),
-            arena: Arena::new(),
+            environment: Default::default(),
             expr_arena: ExprArena::new(),
         }
     }
@@ -58,7 +53,7 @@ impl Capsule {
         T: Parse<'a>,
         D: for<'de> Deserializer<'de>,
     {
-        Parse::parse(&mut self.expr_arena, deserializer)
+        Parse::parse(self, deserializer)
     }
 
     pub fn eval<T>(&mut self, code: &T) -> Fallible<T::Value>
@@ -82,14 +77,10 @@ impl Capsule {
                 let prog: PackageProgram = pkg_capsule.parse(prog)?;
                 prog.eval(&mut pkg_capsule)?;
                 let pkg = Package {
-                    environment: pkg_capsule
-                        .environments
-                        .into_iter()
-                        .next()
-                        .expect("no environment"),
+                    environment: pkg_capsule.environment,
                 };
                 let pkg = Arc::new(pkg);
-                self.environment_mut().packages.push(Arc::clone(&pkg));
+                self.environment.add_package(Arc::clone(&pkg));
                 entry = Some(Arc::downgrade(&pkg));
                 Ok(pkg)
             })();
@@ -102,21 +93,14 @@ impl Capsule {
         ContextGuard::new(self)
     }
 
-    fn environment_mut(&mut self) -> &mut Environment {
-        self.environments.last_mut().expect("no environment")
-    }
-
     pub(crate) fn bind(&mut self, name: &str, value: Variant) {
-        self.environment_mut().bind(name, value);
+        self.environment.bind(name, value);
     }
 
     pub(crate) fn lookup(&self, depth: usize, index: usize) -> Fallible<&Variant> {
-        self._lookup(depth, index).ok_or_else(Error::name)
-    }
-
-    fn _lookup(&self, depth: usize, index: usize) -> Option<&Variant> {
-        let i = self.environments.len().checked_sub(depth + 1)?;
-        self.environments.get(i)?.values.get(index)
+        self.environment
+            .lookup(depth, index)
+            .ok_or_else(Error::name)
     }
 
     pub(crate) fn write(&mut self, bytes: &[u8]) -> Fallible<()> {
@@ -129,22 +113,14 @@ pub(crate) struct ContextGuard<'a>(&'a mut Capsule);
 
 impl<'a> ContextGuard<'a> {
     fn new(ctx: &'a mut Capsule) -> Self {
-        ctx.environments.push(Environment::default());
+        ctx.environment.push();
         ContextGuard(ctx)
-    }
-
-    pub(crate) fn load(&mut self, env: &Environment) {
-        self.0
-            .environments
-            .last_mut()
-            .expect("no environment")
-            .clone_from(env);
     }
 }
 
 impl Drop for ContextGuard<'_> {
     fn drop(&mut self) {
-        self.0.environments.pop();
+        self.0.environment.pop();
     }
 }
 

@@ -10,32 +10,22 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct Function {
     parameters: Vec<Symbol>,
-    closure: Environment,
     body: BlockExpression,
+    // TODO: reimplement closure
 }
 
 impl Function {
     pub fn new(_ctx: &mut Capsule, parameters: Vec<Symbol>, body: BlockExpression) -> Self {
-        let closure = Environment::default();
-        Function {
-            parameters,
-            closure,
-            body,
-        }
+        Function { parameters, body }
     }
 
     pub fn call(&self, ctx: &mut Capsule, arguments: &[ExprIndex]) -> Fallible<Variant> {
-        let Function {
-            parameters,
-            body,
-            closure,
-        } = self;
+        let Function { parameters, body } = self;
         let args: Vec<_> = arguments
             .iter()
             .map(|arg| arg.eval(ctx))
             .collect::<Result<_, _>>()?;
         let mut g = ctx.push();
-        g.load(&closure);
         for (name, val) in parameters.iter().zip(args) {
             g.bind(&name, val);
         }
