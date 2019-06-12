@@ -2,6 +2,7 @@
 members = [
     "libnaru",
     "naru",
+    "naru-symbol",
 ]
 
 [package]
@@ -17,14 +18,11 @@ chashmap = "2.2"
 failure = "0.1.5"
 generational-arena = "0.2"
 log = "0.4"
+naru-symbol = { path = "naru-symbol" }
 serde = { version = "1.0.91", features = ["derive"] }
 serde_derive_urashima = { git = "https://github.com/Kroisse/serde.git", branch = "derive_urashima" }
 serde_yaml = "0.8"
 smallvec = "0.6"
-string_cache = "0.7"
-
-[build-dependencies]
-string_cache_codegen = "0.4"
 
 [dev-dependencies]
 serde_json = "1.0.39"

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use failure::{Backtrace, Context, Fail};
 
-use crate::{data::Symbol, program::PackagePath};
+use crate::{data::{Symbol, symbol}, program::PackagePath};
 
 #[derive(Debug)]
 pub struct Error {

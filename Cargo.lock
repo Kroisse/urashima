@@ -229,6 +229,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "naru-symbol"
+version = "0.1.0"
+dependencies = [
+ "string_cache 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_codegen 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "new_debug_unreachable"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -676,13 +684,12 @@ dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "generational-arena 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "naru-symbol 0.1.0",
  "serde 1.0.92 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive_urashima 1.0.92 (git+https://github.com/Kroisse/serde.git?branch=derive_urashima)",
  "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_yaml 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache_codegen 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

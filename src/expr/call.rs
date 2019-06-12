@@ -1,7 +1,7 @@
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::capsule::Capsule;
-use crate::data::{Symbol, Variant};
+use crate::data::{Symbol, Variant, symbol};
 use crate::error::{Error, Fallible};
 use crate::eval::Evaluate;
 

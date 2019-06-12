@@ -2,13 +2,12 @@ pub mod function;
 pub mod record;
 pub mod variant;
 
-#[macro_use]
 mod internal {
     use serde::de::{Deserialize, DeserializeSeed, Deserializer};
 
     use crate::expr::Alloc;
 
-    include!(concat!(env!("OUT_DIR"), "/symbol.rs"));
+    use naru_symbol::{Symbol};
 
     impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, Symbol> {
         type Value = Symbol;
@@ -22,13 +21,14 @@ mod internal {
     }
 }
 
-pub use self::{function::Function, internal::Symbol, record::Record, variant::Variant};
+pub use naru_symbol::{Symbol, symbol};
+pub use self::{function::Function, record::Record, variant::Variant};
 
 #[cfg(test)]
 mod test {
     use std::mem;
 
-    use super::Symbol;
+    use super::{Symbol, symbol};
 
     #[test]
     fn symbol_size() {

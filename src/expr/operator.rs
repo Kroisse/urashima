@@ -1,9 +1,11 @@
 use serde_derive_urashima::DeserializeSeed;
 
-use crate::capsule::Capsule;
-use crate::data::Variant;
-use crate::error::{Error, Fallible};
-use crate::eval::Evaluate;
+use crate::{
+    capsule::Capsule,
+    data::{Variant, symbol},
+    error::{Error, Fallible},
+    eval::Evaluate,
+};
 
 use super::ExprIndex;
 
