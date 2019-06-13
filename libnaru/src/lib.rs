@@ -31,7 +31,10 @@ pub unsafe extern "C" fn naru_runtime_delete(rt: *mut NaruRuntime) {
 #[no_mangle]
 pub unsafe extern "C" fn naru_runtime_last_error(rt: *mut NaruRuntime) -> *const Error {
     guard!(let Some(rt) = rt.as_mut() else { return std::ptr::null(); });
-    rt.last_error.as_ref().map(|e| {let e: *const _ = e; e}).unwrap_or_else(std::ptr::null)
+    rt.last_error
+        .as_ref()
+        .map(|e| e as *const _)
+        .unwrap_or_else(std::ptr::null)
 }
 
 #[no_mangle]

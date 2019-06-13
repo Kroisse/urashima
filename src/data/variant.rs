@@ -1,12 +1,12 @@
 use crate::{arena::Index, capsule::Capsule};
 
-use super::{Function, Record};
+use super::{Function, Int, Nat, Record};
 
 #[derive(Clone, Debug)]
 pub enum Variant {
     Bool(bool),
-    Int(i64),
-    // Nat(u32),
+    Int(Int),
+    Nat(Nat),
     Str(String),
     Record(Record),
     Fn(Index<Function>),
@@ -43,9 +43,9 @@ impl Variant {
         }
     }
 
-    pub fn to_int(&self) -> Option<i64> {
+    pub fn to_int(&self) -> Option<&Int> {
         if let Variant::Int(val) = self {
-            Some(*val)
+            Some(val)
         } else {
             None
         }
@@ -58,9 +58,9 @@ impl From<bool> for Variant {
     }
 }
 
-impl From<i64> for Variant {
-    fn from(val: i64) -> Self {
-        Variant::Int(val)
+impl From<Int> for Variant {
+    fn from(val: Int) -> Self {
+        Variant::Int(val.into())
     }
 }
 

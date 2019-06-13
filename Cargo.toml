@@ -19,6 +19,7 @@ failure = "0.1.5"
 generational-arena = "0.2"
 log = "0.4"
 naru-symbol = { path = "naru-symbol" }
+num-bigint = { version = "0.2", features = ["serde"] }
 serde = { version = "1.0.91", features = ["derive"] }
 serde_derive_urashima = { git = "https://github.com/Kroisse/serde.git", branch = "derive_urashima" }
 serde_yaml = "0.8"

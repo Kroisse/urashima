@@ -2,7 +2,7 @@ use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     capsule::Capsule,
-    data::{Variant, symbol},
+    data::{symbol, Variant},
     error::{ControlFlow, Error, Fallible},
     eval::Evaluate,
 };
@@ -98,12 +98,12 @@ mod test {
 
         let expr: ExprIndex = capsule.parse(code.clone())?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(1));
+        assert_eq!(value.to_int(), Some(&1.into()));
 
         code["If"]["cond"] = serde_json::Value::String("False".to_owned());
         let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(2));
+        assert_eq!(value.to_int(), Some(&2.into()));
 
         Ok(())
     }

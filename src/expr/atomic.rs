@@ -3,7 +3,7 @@ use serde_derive_urashima::DeserializeSeed;
 use super::ExprIndex;
 use crate::{
     capsule::Capsule,
-    data::{record::Key, Function, Symbol, Variant},
+    data::{record::Key, Function, Int, Symbol, Variant},
     error::{Error, Fallible},
     eval::Evaluate,
     statement::Statement,
@@ -36,7 +36,7 @@ impl<'arena> Evaluate for AtomicExpression {
         match self {
             False => Ok(Variant::Bool(false)),
             True => Ok(Variant::Bool(true)),
-            Integral(val) => Ok(Variant::from(*val)),
+            Integral(val) => Ok(Variant::Int((*val).into())),
             Str(val) => Ok(Variant::from(&val[..])),
             Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
             Record(exprs) => eval_record(ctx, &exprs),
@@ -131,7 +131,7 @@ mod test {
         let mut capsule = rt.root_capsule();
         let expr: ExprIndex = capsule.parse(expr)?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(42));
+        assert_eq!(value.to_int(), Some(&42.into()));
 
         Ok(())
     }
@@ -164,7 +164,7 @@ mod test {
 
         let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(42));
+        assert_eq!(value.to_int(), Some(&42.into()));
 
         Ok(())
     }
@@ -199,7 +199,7 @@ mod test {
 
         let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(2));
+        assert_eq!(value.to_int(), Some(&2.into()));
 
         Ok(())
     }
@@ -243,7 +243,7 @@ mod test {
 
         let expr: ExprIndex = capsule.parse(code)?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(43));
+        assert_eq!(value.to_int(), Some(&43.into()));
 
         Ok(())
     }

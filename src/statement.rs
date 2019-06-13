@@ -59,7 +59,7 @@ mod test {
         }))?;
         capsule.eval(&stmt)?;
         let env = capsule.environment;
-        assert_eq!(env.values[0].to_int(), Some(42));
+        assert_eq!(env.values[0].to_int(), Some(&42.into()));
         assert_eq!(&env.names[0], "foo");
         Ok(())
     }

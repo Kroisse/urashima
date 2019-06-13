@@ -2,7 +2,7 @@ use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     capsule::Capsule,
-    data::{Variant, symbol},
+    data::{symbol, Variant},
     error::{Error, Fallible},
     eval::Evaluate,
 };
@@ -69,7 +69,7 @@ mod test {
             ],
         }))?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(3));
+        assert_eq!(value.to_int(), Some(&3.into()));
         Ok(())
     }
 
@@ -84,7 +84,7 @@ mod test {
             ],
         }))?;
         let value = capsule.eval(&expr)?;
-        assert_eq!(value.to_int(), Some(-1));
+        assert_eq!(value.to_int(), Some(&(-1).into()));
         Ok(())
     }
 }

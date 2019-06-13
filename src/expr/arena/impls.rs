@@ -3,6 +3,7 @@ use std::fmt;
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 
 use super::{super::Expression, Alloc, ExprIndex};
+use crate::data::num::{Int, Nat};
 
 impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, ExprIndex> {
     /// The type produced by using this seed.
@@ -210,7 +211,7 @@ macro_rules! deserializeseed_forwarded_impls {
 }
 
 deserializeseed_forwarded_impls! {
-    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 isize usize String
+    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 isize usize Int Nat String
 }
 
 mod size_hint {
