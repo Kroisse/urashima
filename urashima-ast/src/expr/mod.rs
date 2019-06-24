@@ -8,26 +8,22 @@ use std::cell::RefCell;
 use std::fmt;
 
 use lazy_static::lazy_static;
+use naru_symbol::Symbol;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
-    capsule::Capsule,
-    data::{Symbol, Variant},
     error::{Error, Fallible},
-    eval::Evaluate,
     parser::{Pairs, Parse, Rule},
 };
 
 pub use self::{
-    arena::{ExprArena, ExprIndex},
+    arena::{Alloc, ExprArena, ExprIndex},
     atomic::{AtomicExpression, BlockExpression},
     call::CallExpression,
     control_flow::ControlFlowExpression,
     operator::OperatorExpression,
 };
-
-pub(crate) use self::arena::Alloc;
 
 #[derive(Clone, Debug, DeserializeSeed)]
 #[serde(untagged)]
@@ -62,26 +58,16 @@ impl From<ControlFlowExpression> for Expression {
     }
 }
 
-impl Evaluate for Expression {
-    type Value = Variant;
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        use Expression::*;
-        match self {
-            Atomic(expr) => expr.eval(ctx),
-            Operator(expr) => expr.eval(ctx),
-            Call(expr) => expr.eval(ctx),
-            ControlFlow(expr) => expr.eval(ctx),
-        }
-    }
-}
-
 pub(crate) struct Display<'a, T> {
     arena: &'a ExprArena,
     value: T,
 }
 
 impl<'a, T> Display<'a, T> {
+    pub(crate) fn new(arena: &'a ExprArena, value: T) -> Self {
+        Display { arena, value }
+    }
+
     fn wrap<U>(&self, other: U) -> Display<'a, U> {
         Display {
             arena: self.arena,

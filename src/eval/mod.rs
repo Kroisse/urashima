@@ -1,23 +1,60 @@
-use serde_derive_urashima::DeserializeSeed;
+mod expr;
+
+use urashima_ast::{
+    program::{PackageDep, PackageProgram, ScriptProgram},
+    statement::Statement,
+};
 
 use crate::{
     capsule::Capsule,
-    data::Symbol,
     error::{Error, Fallible},
-    eval::Evaluate,
-    expr::Expression,
-    program::PackageDep,
 };
 
-#[derive(Clone, Debug, DeserializeSeed)]
-pub enum Statement {
-    Binding(Symbol, Expression),
-    Expr(Expression),
-    Return(Expression),
-    Break,
-    Continue,
-    Use(PackageDep),
-    Print(Expression), // for debug only
+pub(crate) use self::expr::eval_in_context;
+
+pub trait Evaluate {
+    type Value;
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value>;
+}
+
+impl Evaluate for PackageProgram {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        for dep in &self.uses {
+            dep.eval(ctx)?;
+        }
+        for b in &self.bindings {
+            let value = b.value.eval(ctx)?;
+            ctx.bind(&b.name, value);
+        }
+        Ok(())
+    }
+}
+
+impl Evaluate for PackageDep {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        let pkg = ctx.load(self.path.clone())?;
+        for name in &self.imports {
+            let value = pkg.environment.lookup_name(&name)?;
+            ctx.bind(&name, value.clone());
+        }
+        Ok(())
+    }
+}
+
+impl Evaluate for ScriptProgram {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        for stmt in &self.statements {
+            stmt.eval(ctx)?;
+        }
+        Ok(())
+    }
 }
 
 impl Evaluate for Statement {
@@ -43,7 +80,7 @@ impl Evaluate for Statement {
 }
 
 #[cfg(test)]
-mod test {
+mod test_stmt {
     use failure::Fallible;
     use serde_json::json;
 

@@ -2,13 +2,13 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 
 use chashmap::CHashMap;
+use urashima_ast::program::{PackagePath, ScriptProgram};
 
 use crate::{
     capsule::Capsule,
     environment::Package,
     error::{Error, Fallible},
     eval::Evaluate,
-    program::{PackagePath, ScriptProgram},
 };
 
 pub struct Runtime {

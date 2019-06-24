@@ -3,52 +3,27 @@ mod impls;
 use std::marker::PhantomData;
 
 use serde::de::{self, DeserializeSeed, Deserializer, Visitor};
+use urashima_util::{Arena, Index};
 
 use super::Expression;
-use crate::{
-    arena::{Arena, Index},
-    capsule::Capsule,
-    data::Variant,
-    error::{Error, Fallible},
-    eval::Evaluate,
-};
 
 pub type ExprArena = Arena<Expression>;
 pub type ExprIndex = Index<Expression>;
 
-pub(crate) struct Alloc<'a, T>(&'a mut Capsule, PhantomData<T>);
+pub struct Alloc<'a, T>(&'a mut ExprArena, PhantomData<T>);
 
-impl Capsule {
-    pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
-        Alloc(self, PhantomData)
-    }
-}
-
-impl Evaluate for ExprIndex {
-    type Value = Variant;
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        let expr = ctx
-            .expr_arena
-            .get(*self)
-            .ok_or_else(Error::runtime)?
-            .clone();
-        expr.eval(ctx)
-    }
-}
-
-impl<'a, 'de, T> From<&'a mut Capsule> for Alloc<'a, T> {
-    fn from(arena: &'a mut Capsule) -> Self {
-        arena.alloc()
+impl<'a, 'de, T> From<&'a mut ExprArena> for Alloc<'a, T> {
+    fn from(arena: &'a mut ExprArena) -> Self {
+        Alloc(arena, PhantomData)
     }
 }
 
 impl<'a, 'de, T> Alloc<'a, T> {
-    pub(crate) fn arena(&mut self) -> &mut ExprArena {
-        &mut self.0.expr_arena
+    pub fn arena(&mut self) -> &mut ExprArena {
+        &mut self.0
     }
 
-    pub(crate) fn borrow<U>(&mut self) -> Alloc<'_, U> {
+    pub fn borrow<U>(&mut self) -> Alloc<'_, U> {
         Alloc(&mut *self.0, PhantomData)
     }
 }

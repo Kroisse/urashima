@@ -1,25 +1,14 @@
 use std::fmt;
 
+use naru_symbol::Symbol;
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
+use urashima_util::num::{Int, Nat};
 
-use super::{
-    super::{Display, Expression},
-    Alloc, ExprArena, ExprIndex,
-};
+use super::{super::Expression, Alloc, ExprArena, ExprIndex};
 use crate::{
-    data::num::{Int, Nat},
     error::Fallible,
     parser::{Pairs, Parse, Rule},
 };
-
-impl ExprIndex {
-    pub(crate) fn display<'a>(&self, arena: &'a ExprArena) -> Display<'a, ExprIndex> {
-        Display {
-            arena,
-            value: *self,
-        }
-    }
-}
 
 impl Parse for ExprIndex {
     const RULE: Rule = Rule::expression;
@@ -236,7 +225,7 @@ macro_rules! deserializeseed_forwarded_impls {
 }
 
 deserializeseed_forwarded_impls! {
-    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 isize usize Int Nat String
+    bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 isize usize Int Nat String Symbol
 }
 
 mod size_hint {

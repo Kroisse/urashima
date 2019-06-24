@@ -3,12 +3,9 @@ use std::fmt;
 use std::path::PathBuf;
 
 use failure::{Backtrace, Context, Fail};
+use urashima_ast::program::PackagePath;
 
-use crate::{
-    data::{symbol, Symbol},
-    parser::Rule,
-    program::PackagePath,
-};
+use crate::data::{symbol, Symbol};
 
 #[derive(Debug)]
 pub struct Error {
@@ -37,10 +34,6 @@ impl Error {
         E: serde::de::Error,
     {
         ErrorKind::Parse(err.to_string()).into()
-    }
-
-    pub(crate) fn unexpected(expected: Rule, found: Rule) -> Self {
-        ErrorKind::UnexpectedRule { expected, found }.into()
     }
 
     pub(crate) fn runtime() -> Error {
@@ -85,14 +78,6 @@ impl Error {
         ErrorKind::ControlFlow(ControlFlow::Continue).into()
     }
 
-    pub(crate) fn is_unexpected(&self) -> bool {
-        if let ErrorKind::UnexpectedRule { .. } = self.inner.get_context() {
-            true
-        } else {
-            false
-        }
-    }
-
     pub(crate) fn as_control_flow(&self) -> Option<&ControlFlow> {
         if let ErrorKind::ControlFlow(cf) = self.inner.get_context() {
             Some(cf)
@@ -106,9 +91,6 @@ impl Error {
 enum ErrorKind {
     #[fail(display = "parse error: {}", _0)]
     Parse(String),
-
-    #[fail(display = "expected rule = {:?}, found = {:?}", expected, found)]
-    UnexpectedRule { expected: Rule, found: Rule },
 
     #[fail(display = "runtime error")]
     Runtime,
@@ -146,18 +128,6 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-impl<R: pest::RuleType> From<pest::error::Error<R>> for Error {
-    fn from(err: pest::error::Error<R>) -> Self {
-        ErrorKind::Parse(err.to_string()).into()
-    }
-}
-
-impl From<std::num::ParseIntError> for Error {
-    fn from(err: std::num::ParseIntError) -> Self {
-        ErrorKind::Parse(err.to_string()).into()
     }
 }
 

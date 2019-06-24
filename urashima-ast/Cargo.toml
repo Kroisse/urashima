@@ -1,0 +1,16 @@
+[package]
+name = "urashima-ast"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1.5"
+lazy_static = "1.3"
+naru-symbol = { path = "../naru-symbol" }
+pest = "2.1"
+pest_derive = "2.1"
+serde = { version = "1.0.91", features = ["derive"] }
+serde_derive_urashima = { git = "https://github.com/Kroisse/serde.git", branch = "derive_urashima" }
+smallvec = "0.6"
+urashima-util = { path = "../urashima-util" }

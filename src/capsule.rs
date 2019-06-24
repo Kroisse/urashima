@@ -3,14 +3,16 @@ use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Weak};
 
 use serde::de::{DeserializeSeed, Deserializer};
+use urashima_ast::{
+    expr::{Alloc, ExprArena},
+    program::{PackagePath, PackageProgram},
+};
 
 use crate::{
     data::Variant,
     environment::{Environment, Package},
     error::{Error, Fallible},
     eval::Evaluate,
-    expr::{Alloc, ExprArena},
-    program::{PackagePath, PackageProgram},
     runtime::RuntimeContextRef,
 };
 
@@ -103,6 +105,12 @@ impl Capsule {
     }
 }
 
+impl Capsule {
+    pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
+        Alloc::from(&mut self.expr_arena)
+    }
+}
+
 pub(crate) struct ContextGuard<'a>(&'a mut Capsule);
 
 impl<'a> ContextGuard<'a> {
@@ -136,8 +144,9 @@ mod internal {
     use std::fs::File;
     use std::path::{Path, PathBuf};
 
+    use urashima_ast::program::PackagePath;
+
     use crate::error::{Error, Fallible};
-    use crate::program::PackagePath;
 
     pub(super) fn load(paths: &[PathBuf], pkg_path: &PackagePath) -> Fallible<serde_yaml::Value> {
         for base_path in paths {

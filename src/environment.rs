@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use urashima_util::arena::{Arena, Index};
+
 use crate::{
-    arena::{Arena, Index},
     data::{Function, Symbol, Variant},
     error::{Error, Fallible},
 };

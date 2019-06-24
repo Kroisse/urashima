@@ -1,1 +1,1 @@
-pub use num_bigint::{BigInt as Int, BigUint as Nat};
+pub use urashima_util::num::{Int, Nat};

@@ -1,0 +1,9 @@
+[package]
+name = "urashima-util"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+generational-arena = "0.2"
+num-bigint = { version = "0.2", features = ["serde"] }

@@ -1,9 +1,10 @@
+use urashima_ast::expr::{BlockExpression, ExprIndex};
+
 use super::{Symbol, Variant};
 use crate::{
     capsule::Capsule,
     error::Fallible,
-    eval::Evaluate,
-    expr::{BlockExpression, ExprIndex},
+    eval::{eval_in_context, Evaluate},
 };
 
 #[derive(Clone, Debug)]
@@ -28,7 +29,7 @@ impl Function {
         for (name, val) in parameters.iter().zip(args) {
             g.bind(&name, val);
         }
-        Ok(body.eval_in_context(&mut g)?)
+        Ok(eval_in_context(body, &mut g)?)
     }
 }
 

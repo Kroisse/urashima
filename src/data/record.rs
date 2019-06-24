@@ -1,10 +1,8 @@
 use std::iter::FromIterator;
 
-use serde::Deserialize;
-use serde_derive_urashima::DeserializeSeed;
+use urashima_util::Index;
 
 use super::{Symbol, Variant};
-use crate::arena::Index;
 
 #[derive(Clone, Debug)]
 pub struct Record {
@@ -23,30 +21,21 @@ impl Default for Record {
     }
 }
 
-impl FromIterator<(Key, Index<Variant>)> for Record {
+impl FromIterator<(Symbol, Index<Variant>)> for Record {
     fn from_iter<T>(iter: T) -> Self
     where
-        T: IntoIterator<Item = (Key, Index<Variant>)>,
+        T: IntoIterator<Item = (Symbol, Index<Variant>)>,
     {
         let fields = iter
             .into_iter()
-            .map(|(k, value)| match k {
-                Key::Index(key) => Field::Index { key, value },
-                Key::Label(key) => Field::Label { key, value },
-            })
+            .map(|(label, value)| Field { label, value })
             .collect();
         Record { fields }
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum Field {
-    Index { key: usize, value: Index<Variant> },
-    Label { key: Symbol, value: Index<Variant> },
-}
-
-#[derive(Clone, Eq, Debug, Deserialize, DeserializeSeed, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Key {
-    Index(usize),
-    Label(Symbol),
+pub struct Field {
+    label: Symbol,
+    value: Index<Variant>,
 }

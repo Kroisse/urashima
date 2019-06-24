@@ -1,6 +1,7 @@
-use crate::{arena::Index, capsule::Capsule};
+use urashima_util::Index;
 
 use super::{Function, Int, Nat, Record};
+use crate::capsule::Capsule;
 
 #[derive(Clone, Debug)]
 pub enum Variant {

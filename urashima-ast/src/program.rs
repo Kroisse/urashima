@@ -1,12 +1,9 @@
-use serde::Deserialize;
+use naru_symbol::Symbol;
 use serde_derive_urashima::DeserializeSeed;
 use smallvec::SmallVec;
 
 use crate::{
-    capsule::Capsule,
-    data::Symbol,
     error::Fallible,
-    eval::Evaluate,
     expr::{ExprArena, ExprIndex},
     parser::{Pairs, Parse, Rule},
     statement::Statement,
@@ -17,69 +14,30 @@ pub use self::internal::PackagePath;
 #[derive(DeserializeSeed)]
 pub struct PackageProgram {
     /// Dependencies
-    uses: Vec<PackageDep>,
+    pub uses: Vec<PackageDep>,
 
     ///
     /// Assume that binding declarations are already sorted by topological order.
     ///
     /// https://narucode.org/0/#Binding
-    bindings: Vec<Binding>,
+    pub bindings: Vec<Binding>,
 }
 
 #[derive(Clone, Debug, DeserializeSeed, PartialEq)]
 pub struct PackageDep {
-    pub(crate) path: PackagePath,
-    pub(crate) imports: Vec<Symbol>,
+    pub path: PackagePath,
+    pub imports: Vec<Symbol>,
 }
 
 #[derive(DeserializeSeed)]
-pub(crate) struct Binding {
-    pub(crate) name: Symbol,
-    pub(crate) value: ExprIndex,
-}
-
-impl Evaluate for PackageProgram {
-    type Value = ();
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        for dep in &self.uses {
-            dep.eval(ctx)?;
-        }
-        for b in &self.bindings {
-            let value = b.value.eval(ctx)?;
-            ctx.bind(&b.name, value);
-        }
-        Ok(())
-    }
-}
-
-impl Evaluate for PackageDep {
-    type Value = ();
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        let pkg = ctx.load(self.path.clone())?;
-        for name in &self.imports {
-            let value = pkg.environment.lookup_name(&name)?;
-            ctx.bind(&name, value.clone());
-        }
-        Ok(())
-    }
+pub struct Binding {
+    pub name: Symbol,
+    pub value: ExprIndex,
 }
 
 #[derive(DeserializeSeed)]
 pub struct ScriptProgram {
-    pub(crate) statements: Vec<Statement>,
-}
-
-impl Evaluate for ScriptProgram {
-    type Value = ();
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        for stmt in &self.statements {
-            stmt.eval(ctx)?;
-        }
-        Ok(())
-    }
+    pub statements: Vec<Statement>,
 }
 
 mod internal {
@@ -87,7 +45,7 @@ mod internal {
     use std::iter::FromIterator;
     use std::slice;
 
-    use serde::de::{DeserializeSeed, Deserializer, SeqAccess, Visitor};
+    use serde::de::{Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 
     use super::*;
     use crate::expr::Alloc;
@@ -260,7 +218,7 @@ impl Parse for Binding {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::expr::Expression;
+    use crate::expr::{Display, Expression};
 
     #[test]
     fn basic() {
@@ -276,7 +234,7 @@ bar := 3 println()
         )
         .unwrap();
         for b in &parse_result.bindings {
-            println!("{} := {}", b.name, b.value.display(&arena));
+            println!("{} := {}", b.name, Display::new(&arena, b.value));
         }
         assert_eq!(
             parse_result.uses,

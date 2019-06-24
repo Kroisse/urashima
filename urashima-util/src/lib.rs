@@ -16,16 +16,7 @@
 #![deny(rust_2018_idioms)]
 #![cfg_attr(test, recursion_limit = "128")]
 
-#[macro_use]
-mod data;
+pub mod arena;
+pub mod num;
 
-mod environment;
-mod eval;
-
-pub mod capsule;
-pub mod error;
-pub mod runtime;
-
-pub use crate::capsule::Capsule;
-pub use crate::error::{Error, Fallible};
-pub use crate::runtime::Runtime;
+pub use crate::arena::{Arena, Index};
