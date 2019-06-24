@@ -13,13 +13,8 @@ use super::{Display, ExprIndex};
 
 #[derive(Clone, Debug, DeserializeSeed)]
 pub enum OperatorExpression {
-    #[serde(rename = "+")]
-    Addition(ExprIndex, ExprIndex),
-
-    #[serde(rename = "-")]
-    Subtraction(ExprIndex, ExprIndex),
-
-    Binary(Symbol, ExprIndex, ExprIndex),
+    #[serde(rename = "infix")]
+    Infix(Symbol, ExprIndex, ExprIndex),
 
     #[serde(rename = "new")]
     New(ExprIndex),
@@ -31,26 +26,16 @@ impl Evaluate for OperatorExpression {
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use OperatorExpression::*;
         match self {
-            Addition(a, b) => {
+            Infix(op, a, b) => {
                 let a = a.eval(ctx)?;
                 let b = b.eval(ctx)?;
-                match (a, b) {
-                    (Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a + b)),
-                    _ => Err(Error::invalid_type(symbol!("int"))),
+                match (op.as_ref(), a, b) {
+                    ("+", Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a + b)),
+                    ("-", Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a - b)),
+                    ("*", Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a * b)),
+                    ("/", Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a / b)),
+                    _ => Err(Error::unimplemented()),
                 }
-            }
-            Subtraction(a, b) => {
-                let a = a.eval(ctx)?;
-                let b = b.eval(ctx)?;
-                match (a, b) {
-                    (Variant::Int(a), Variant::Int(b)) => Ok(Variant::Int(a - b)),
-                    _ => Err(Error::invalid_type(symbol!("int"))),
-                }
-            }
-            Binary(op, a, b) => {
-                let a = a.eval(ctx)?;
-                let b = b.eval(ctx)?;
-                Err(Error::unimplemented())
             }
             New(expr) => {
                 let val = expr.eval(ctx)?;
@@ -63,13 +48,7 @@ impl Evaluate for OperatorExpression {
 impl<'a> fmt::Display for Display<'a, &OperatorExpression> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.value {
-            OperatorExpression::Addition(a, b) => {
-                write!(f, "{} + {}", self.wrap(*a), self.wrap(*b))
-            }
-            OperatorExpression::Subtraction(a, b) => {
-                write!(f, "{} - {}", self.wrap(*a), self.wrap(*b))
-            }
-            OperatorExpression::Binary(op, a, b) => {
+            OperatorExpression::Infix(op, a, b) => {
                 write!(f, "{} {} {}", self.wrap(*a), op, self.wrap(*b))
             }
             OperatorExpression::New(expr) => write!(f, "new {}", self.wrap(*expr)),
@@ -89,7 +68,8 @@ mod test {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
         let expr: ExprIndex = capsule.parse(json!({
-            "+": [
+            "infix": [
+                "+",
                 {"Integral": 1},
                 {"Integral": 2},
             ],
@@ -104,7 +84,8 @@ mod test {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
         let expr: ExprIndex = capsule.parse(json!({
-            "-": [
+            "infix": [
+                "-",
                 {"Integral": 1},
                 {"Integral": 2},
             ],

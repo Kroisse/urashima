@@ -137,7 +137,7 @@ impl Parse for Expression {
             },
             |left, op, right| {
                 let mut arena = cell.borrow_mut();
-                Ok(OperatorExpression::Binary(
+                Ok(OperatorExpression::Infix(
                     op.as_str().into(),
                     arena.insert(left?),
                     arena.insert(right?),

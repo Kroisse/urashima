@@ -226,7 +226,8 @@ mod test {
                     "parameters": ["n"],
                     "body": {
                         "statements": [],
-                        "returns": {"+": [
+                        "returns": {"infix": [
+                            "+",
                             {"Binding": {"index": 0}},
                             {"Integral": 1},
                         ]},
@@ -266,7 +267,8 @@ mod test {
                         "parameters": ["n"],
                         "body": {
                             "statements": [],
-                            "returns": {"+": [
+                            "returns": {"infix": [
+                                "+",
                                 {"Binding": {"depth": 0, "index": 0}},
                                 {"Binding": {"depth": 1, "index": 0}},
                             ]},
