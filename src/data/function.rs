@@ -1,7 +1,6 @@
 use super::{Symbol, Variant};
 use crate::{
     capsule::Capsule,
-    environment::Environment,
     error::Fallible,
     eval::Evaluate,
     expr::{BlockExpression, ExprIndex},
@@ -41,6 +40,6 @@ mod test {
 
     #[test]
     fn function_size() {
-        dbg!(mem::size_of::<Function>());
+        assert!(mem::size_of::<Function>() <= 64);
     }
 }

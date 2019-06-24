@@ -90,8 +90,8 @@ mod test {
 
     #[test]
     fn index_size() {
-        dbg!(mem::size_of::<Index<()>>());
-        dbg!(mem::size_of::<Index<crate::data::Variant>>());
-        dbg!(mem::size_of::<Index<crate::expr::Expression>>());
+        assert!(mem::size_of::<Index<()>>() <= 16);
+        assert!(mem::size_of::<Index<crate::data::Variant>>() <= 16);
+        assert!(mem::size_of::<Index<crate::expr::Expression>>() <= 16);
     }
 }

@@ -60,7 +60,13 @@ impl From<bool> for Variant {
 
 impl From<Int> for Variant {
     fn from(val: Int) -> Self {
-        Variant::Int(val.into())
+        Variant::Int(val)
+    }
+}
+
+impl From<Nat> for Variant {
+    fn from(val: Nat) -> Self {
+        Variant::Nat(val)
     }
 }
 
@@ -78,6 +84,6 @@ mod test {
 
     #[test]
     fn variant_size() {
-        dbg!(mem::size_of::<Variant>());
+        assert!(mem::size_of::<Variant>() <= 64);
     }
 }

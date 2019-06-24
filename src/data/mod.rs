@@ -34,18 +34,10 @@ pub use naru_symbol::{symbol, Symbol};
 mod test {
     use std::mem;
 
-    use super::{symbol, Symbol};
+    use super::Symbol;
 
     #[test]
     fn symbol_size() {
-        dbg!(mem::size_of::<Symbol>());
-        unsafe {
-            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(symbol!("true"))));
-            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(Symbol::from("true"))));
-            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(Symbol::from("asdf"))));
-            dbg!(mem::transmute::<_, [u8; 8]>(dbg!(Symbol::from(
-                "the quick fox jumps over the lazy brown dog"
-            ))));
-        }
+        assert!(mem::size_of::<Symbol>() <= 8);
     }
 }
