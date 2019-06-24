@@ -24,7 +24,7 @@ statement = {
 binding_statement = { name ~ OPERATOR_BIND ~ expression }
 break_statement = { KEYWORD_BREAK }
 continue_statement = { KEYWORD_CONTINUE }
-return_statement = { KEYWORD_RETURN }
+return_statement = { KEYWORD_RETURN ~ expression? }
 
 expression = { operator_expression | operand_expression }
 operator_expression = _{ operand_expression ~ (operator ~ operand_expression)* }

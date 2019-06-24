@@ -49,7 +49,9 @@ impl Parse for BlockExpression {
         let mut expr = AtomicExpression::Record(vec![]).into();
         for item in pairs {
             match item.as_rule() {
-                Rule::statement => {}
+                Rule::statement => {
+                    statements.push(Statement::from_pairs(&mut *arena, item.into_inner())?);
+                }
                 Rule::expression => {
                     expr = Expression::from_pairs(&mut *arena, item.into_inner())?;
                 }

@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 
 use crate::{
     error::Fallible,
-    expr::{ExprArena, ExprIndex},
+    expr::{ExprArena, Expression},
     parser::{Pairs, Parse, Rule},
     statement::Statement,
 };
@@ -32,7 +32,7 @@ pub struct PackageDep {
 #[derive(DeserializeSeed)]
 pub struct Binding {
     pub name: Symbol,
-    pub value: ExprIndex,
+    pub value: Expression,
 }
 
 #[derive(DeserializeSeed)]
@@ -188,7 +188,7 @@ impl Parse for Binding {
 
     fn from_pairs(arena: &mut ExprArena, p: Pairs<'_>) -> Fallible<Self> {
         let mut name: Option<Symbol> = None;
-        let mut value: Option<ExprIndex> = None;
+        let mut value: Option<Expression> = None;
         for i in p {
             match i.as_rule() {
                 Rule::name => {
@@ -200,7 +200,7 @@ impl Parse for Binding {
                 }
                 Rule::expression => {
                     if value.is_none() {
-                        value = Some(ExprIndex::from_pairs(&mut *arena, i.into_inner())?);
+                        value = Some(Expression::from_pairs(&mut *arena, i.into_inner())?);
                     } else {
                         unreachable!();
                     }
@@ -234,7 +234,7 @@ bar := 3 println()
         )
         .unwrap();
         for b in &parse_result.bindings {
-            println!("{} := {}", b.name, Display::new(&arena, b.value));
+            println!("{} := {}", b.name, Display::new(&arena, &b.value));
         }
         assert_eq!(
             parse_result.uses,
@@ -255,7 +255,7 @@ bar := 3 println()
                 .collect::<Vec<_>>(),
             vec!["foo", "bar"],
         );
-        let expr = &arena[parse_result.bindings[0].value];
+        let expr = &parse_result.bindings[0].value;
         match expr {
             Expression::Operator(_) => {}
             _ => {

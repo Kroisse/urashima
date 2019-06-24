@@ -46,8 +46,7 @@ pub(crate) trait Parse: Sized {
     }
 }
 
-pub(crate) fn ensure_single(pair: Pair<'_>) -> Pair<'_> {
-    let mut pairs = pair.into_inner();
+pub(crate) fn ensure_single(mut pairs: Pairs<'_>) -> Pair<'_> {
     let inner = if let Some(first) = pairs.next() {
         first
     } else {
