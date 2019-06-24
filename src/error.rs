@@ -51,8 +51,8 @@ impl Error {
         ErrorKind::Unimplemented.into()
     }
 
-    pub(crate) fn name() -> Error {
-        ErrorKind::Name.into()
+    pub(crate) fn name(name: impl Into<Symbol>) -> Error {
+        ErrorKind::Name { name: name.into() }.into()
     }
 
     pub(crate) fn invalid_type(expected: impl Into<Symbol>) -> Error {
@@ -116,8 +116,8 @@ enum ErrorKind {
     #[fail(display = "unimplemented")]
     Unimplemented,
 
-    #[fail(display = "name error")]
-    Name,
+    #[fail(display = "name error: {}", name)]
+    Name { name: Symbol },
 
     #[fail(display = "type error: expected '{}'", expected)]
     Type { expected: Symbol },

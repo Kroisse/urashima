@@ -97,12 +97,6 @@ impl Capsule {
         self.environment.bind(name, value);
     }
 
-    pub(crate) fn lookup(&self, depth: usize, index: usize) -> Fallible<&Variant> {
-        self.environment
-            .lookup(depth, index)
-            .ok_or_else(Error::name)
-    }
-
     pub(crate) fn write(&mut self, bytes: &[u8]) -> Fallible<()> {
         std::io::stdout().write_all(bytes).expect("write error");
         Ok(())

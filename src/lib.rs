@@ -16,6 +16,10 @@
 #![deny(rust_2018_idioms)]
 #![cfg_attr(test, recursion_limit = "128")]
 
+#[cfg(test)]
+#[macro_use]
+mod testutils;
+
 #[macro_use]
 mod data;
 

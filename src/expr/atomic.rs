@@ -18,11 +18,7 @@ pub enum AtomicExpression {
     True,
     Integral(i64),
     Str(String), // ?
-    Binding {
-        #[serde(default)]
-        depth: usize,
-        index: usize,
-    },
+    Name(Symbol),
     Record(Vec<(Key, ExprIndex)>),
     Block(BlockExpression),
     Fn {
@@ -41,7 +37,7 @@ impl<'arena> Evaluate for AtomicExpression {
             True => Ok(Variant::Bool(true)),
             Integral(val) => Ok(Variant::Int((*val).into())),
             Str(val) => Ok(Variant::from(&val[..])),
-            Binding { depth, index } => ctx.lookup(*depth, *index).map(Clone::clone),
+            Name(name) => ctx.environment.lookup_name(name).map(Clone::clone),
             Record(exprs) => eval_record(ctx, &exprs),
             Block(blk) => blk.eval(ctx),
             Fn { parameters, body } => expr_fn(ctx, parameters, body),
@@ -169,7 +165,7 @@ mod test {
                 "statements": [
                     {"Binding": ["foo", {"Integral": 42}]},
                 ],
-                "returns": {"Binding": {"index": 0}},
+                "returns": {"Name": "foo"},
             },
         });
 
@@ -203,7 +199,7 @@ mod test {
 
         let code = json!({
             "FunctionCall": {
-                "callee": {"Binding": {"index": 0}},
+                "callee": {"Name": "answer_to_the_ultimate_question_of_life_the_universe_and_everything"},
                 "arguments": [],
             },
         });
@@ -228,7 +224,7 @@ mod test {
                         "statements": [],
                         "returns": {"infix": [
                             "+",
-                            {"Binding": {"index": 0}},
+                            {"Name": "n"},
                             {"Integral": 1},
                         ]},
                     }
@@ -239,7 +235,7 @@ mod test {
 
         let code = json!({
             "Call": {
-                "callee": {"Binding": {"index": 0}},
+                "callee": {"Name": "increase"},
                 "arguments": [{"Integral": 1}],
             },
         });
@@ -252,7 +248,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn eval_fn_args_with_closed_bindings() -> Fallible<()> {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
@@ -269,8 +264,8 @@ mod test {
                             "statements": [],
                             "returns": {"infix": [
                                 "+",
-                                {"Binding": {"depth": 0, "index": 0}},
-                                {"Binding": {"depth": 1, "index": 0}},
+                                {"Name": "n"},
+                                {"Name": "ANSWER"},
                             ]},
                         }
                     }
@@ -284,7 +279,7 @@ mod test {
 
         let code = json!({
             "Call": {
-                "callee": {"Binding": {"index": 1}},
+                "callee": {"Name": "increase"},
                 "arguments": [{"Integral": 1}],
             },
         });

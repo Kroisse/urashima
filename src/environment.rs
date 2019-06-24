@@ -29,14 +29,8 @@ impl Environment {
             .names
             .iter()
             .position(|n| n == name)
-            .ok_or_else(Error::name)?;
+            .ok_or_else(|| Error::name(name))?;
         Ok(&self.values[i])
-    }
-
-    pub(crate) fn lookup(&self, depth: usize, index: usize) -> Option<&Variant> {
-        let i = self.heads.len().checked_sub(depth + 1).unwrap_or(0);
-        let head = self.heads.get(i).copied().unwrap_or(0);
-        self.values.get(head + index)
     }
 
     pub(crate) fn add_package(&mut self, pkg: Arc<Package>) {

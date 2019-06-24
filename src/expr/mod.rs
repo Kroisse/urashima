@@ -164,10 +164,7 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
                 let (parameters, body) = parse_fn_expression(&mut *arena, head.into_inner())?;
                 AtomicExpression::Fn { parameters, body }.into()
             }
-            Rule::name => {
-                // temp
-                AtomicExpression::Binding { depth: 0, index: 0 }.into()
-            }
+            Rule::name => AtomicExpression::Name(head.as_str().into()).into(),
             _ => {
                 return Err(Error::unimplemented());
             }
@@ -240,43 +237,43 @@ mod test {
     #[test]
     fn atomic_true() {
         let mut arena = ExprArena::new();
-        match Expression::from_str(&mut arena, "true").unwrap() {
+        assert_pat!(
+            Expression::from_str(&mut arena, "true").unwrap(),
             Expression::Atomic(AtomicExpression::True) => {}
-            otherwise => panic!("Unexpected: {:?}", otherwise),
-        }
+        );
     }
 
     #[test]
     fn atomic_false() {
         let mut arena = ExprArena::new();
-        match Expression::from_str(&mut arena, "false").unwrap() {
+        assert_pat!(
+            Expression::from_str(&mut arena, "false").unwrap(),
             Expression::Atomic(AtomicExpression::False) => {}
-            otherwise => panic!("Unexpected: {:?}", otherwise),
-        }
+        );
     }
 
     #[test]
     fn atomic_fn_simple_1() {
         let mut arena = ExprArena::new();
-        match Expression::from_str(&mut arena, "fn {}").unwrap() {
+        assert_pat!(
+            Expression::from_str(&mut arena, "fn {}").unwrap(),
             Expression::Atomic(AtomicExpression::Fn { parameters, body }) => {
                 assert_eq!(parameters.len(), 0);
                 assert_eq!(body.statements().len(), 0);
             }
-            otherwise => panic!("Unexpected: {:?}", otherwise),
-        }
+        );
     }
 
     #[test]
     fn atomic_fn_simple_2() {
         let mut arena = ExprArena::new();
-        match Expression::from_str(&mut arena, "fn (a) { a + 1 }").unwrap() {
+        assert_pat!(
+            Expression::from_str(&mut arena, "fn (a) { a + 1 }").unwrap(),
             Expression::Atomic(AtomicExpression::Fn { parameters, body }) => {
                 assert_eq!(parameters.len(), 1);
                 assert_eq!(parameters, vec![Symbol::from("a")]);
                 assert_eq!(body.statements().len(), 0);
             }
-            otherwise => panic!("Unexpected: {:?}", otherwise),
-        }
+        );
     }
 }
