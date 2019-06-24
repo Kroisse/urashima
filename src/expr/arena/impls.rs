@@ -2,8 +2,33 @@ use std::fmt;
 
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 
-use super::{super::Expression, Alloc, ExprIndex};
-use crate::data::num::{Int, Nat};
+use super::{
+    super::{Display, Expression},
+    Alloc, ExprArena, ExprIndex,
+};
+use crate::{
+    data::num::{Int, Nat},
+    error::Fallible,
+    parser::{Pairs, Parse, Rule},
+};
+
+impl ExprIndex {
+    pub(crate) fn display<'a>(&self, arena: &'a ExprArena) -> Display<'a, ExprIndex> {
+        Display {
+            arena,
+            value: *self,
+        }
+    }
+}
+
+impl Parse for ExprIndex {
+    const RULE: Rule = Rule::expression;
+
+    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+        let expr = Expression::from_pairs(&mut *arena, pairs)?;
+        Ok(arena.insert(expr))
+    }
+}
 
 impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, ExprIndex> {
     /// The type produced by using this seed.

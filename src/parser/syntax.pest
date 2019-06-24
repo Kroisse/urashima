@@ -1,0 +1,87 @@
+package_program = _{
+	SOI ~
+	separator? ~
+	(directive | binding)* ~
+	EOI
+}
+
+directive = _{ use_declaration ~ separator }
+
+use_declaration = { KEYWORD_USE ~ use_path ~ use_imports? }
+use_path = { name+ }
+use_imports = { "*" | grouping_paren_open ~ name ~ (COMMA ~ name)* ~ grouping_paren_close }
+binding = _{ binding_statement ~ separator }
+
+statement = {
+	(
+		break_statement |
+		continue_statement |
+		return_statement |
+		binding_statement |
+		expression
+	) ~ separator
+}
+binding_statement = { name ~ OPERATOR_BIND ~ expression }
+break_statement = { KEYWORD_BREAK }
+continue_statement = { KEYWORD_CONTINUE }
+return_statement = { KEYWORD_RETURN }
+
+expression = { operator_expression | operand_expression }
+operator_expression = _{ operand_expression ~ (operator ~ operand_expression)* }
+operand_expression = { atomic_expression ~ method_call* }
+method_call = { name ~ grouping_paren_open ~ (expression ~ (COMMA ~ expression)* ~ COMMA?)? ~ grouping_paren_close }
+atomic_expression = _{ grouping_paren | fn_expression | literal | name }
+
+fn_expression = { KEYWORD_FN ~ fn_parameters? ~ grouping_brace }
+fn_parameters = _{ grouping_paren_open ~ (fn_param ~ (COMMA ~ fn_param)* ~ COMMA?)? ~ grouping_paren_close }
+fn_param = { name }
+
+grouping_paren = { grouping_paren_open ~ expression ~ grouping_paren_close }
+grouping_brace = { "{" ~ separator? ~ statement* ~ (expression ~ separator?)? ~ "}" }
+
+grouping_paren_open  = _{ "(" }
+grouping_paren_close = _{ ")" }
+
+name = @{ quoted_name | !KEYWORD ~ IDENTIFIER }
+quoted_name = { QUOTE ~ IDENTIFIER ~ QUOTE }
+
+name_start = { "_" | ASCII_ALPHA }
+decimal_digit = { '0'..'9' }
+
+literal = _{ boolean | numeric }
+boolean = { KEYWORD_FALSE | KEYWORD_TRUE }
+numeric = @{ ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* ~ ( "." ~ ASCII_DIGIT )? }
+
+operator = _{
+	op_1 |
+	op_2 |
+	punctuation
+}
+op_1 = @{ ("+" | "-") ~ !PUNCT }
+op_2 = @{ ("*" | "/") ~ !PUNCT }
+
+punctuation = @{ !(COMMA | SEMICOLON | LINE_COMMENT_START) ~ PUNCT+ }
+separator = _{ (SEP | line_comment)+ }
+
+line_comment = _{ LINE_COMMENT_START ~ (!NEWLINE ~ ANY)* ~ NEWLINE }
+
+KEYWORD_BREAK = _{ "break" }
+KEYWORD_CONTINUE = _{ "continue" }
+KEYWORD_FALSE = _{ "false" }
+KEYWORD_FN = _{ "fn" }
+KEYWORD_RETURN = _{ "return" }
+KEYWORD_TRUE = _{ "true" }
+KEYWORD_USE = _{ "use" }
+KEYWORD = @{ KEYWORD_BREAK | KEYWORD_CONTINUE | KEYWORD_FALSE | KEYWORD_FN | KEYWORD_RETURN | KEYWORD_TRUE | KEYWORD_USE }
+
+OPERATOR_BIND = _{ ":=" }
+
+IDENTIFIER = @{ name_start ~ ( name_start | decimal_digit )* }
+
+WHITESPACE = _{ " " | "\t" }
+SEP = _{ NEWLINE | SEMICOLON }
+COMMA = _{ "," }
+SEMICOLON = _{ ";" }
+LINE_COMMENT_START = _{ "--" }
+QUOTE = _{ "`" }
+PUNCT = _{ "!" | "#" | "$" | "%" | "&" | "*" | "+" | "," | "-" | "." | "/" | ":" | "<" | "=" | ">" | "?" | "@" | "\\" | "^" | "|" | "~" }

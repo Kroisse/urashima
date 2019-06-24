@@ -23,6 +23,7 @@ mod arena;
 mod environment;
 mod eval;
 mod expr;
+mod parser;
 mod program;
 mod statement;
 

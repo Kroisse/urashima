@@ -1,13 +1,15 @@
+use std::fmt;
+
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     capsule::Capsule,
-    data::{symbol, Variant},
+    data::{symbol, Symbol, Variant},
     error::{Error, Fallible},
     eval::Evaluate,
 };
 
-use super::ExprIndex;
+use super::{Display, ExprIndex};
 
 #[derive(Clone, Debug, DeserializeSeed)]
 pub enum OperatorExpression {
@@ -16,6 +18,8 @@ pub enum OperatorExpression {
 
     #[serde(rename = "-")]
     Subtraction(ExprIndex, ExprIndex),
+
+    Binary(Symbol, ExprIndex, ExprIndex),
 
     #[serde(rename = "new")]
     New(ExprIndex),
@@ -43,10 +47,32 @@ impl Evaluate for OperatorExpression {
                     _ => Err(Error::invalid_type(symbol!("int"))),
                 }
             }
+            Binary(op, a, b) => {
+                let a = a.eval(ctx)?;
+                let b = b.eval(ctx)?;
+                Err(Error::unimplemented())
+            }
             New(expr) => {
                 let val = expr.eval(ctx)?;
                 Ok(Variant::Ref(ctx.environment.boxed(val)))
             }
+        }
+    }
+}
+
+impl<'a> fmt::Display for Display<'a, &OperatorExpression> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.value {
+            OperatorExpression::Addition(a, b) => {
+                write!(f, "{} + {}", self.wrap(*a), self.wrap(*b))
+            }
+            OperatorExpression::Subtraction(a, b) => {
+                write!(f, "{} - {}", self.wrap(*a), self.wrap(*b))
+            }
+            OperatorExpression::Binary(op, a, b) => {
+                write!(f, "{} {} {}", self.wrap(*a), op, self.wrap(*b))
+            }
+            OperatorExpression::New(expr) => write!(f, "new {}", self.wrap(*expr)),
         }
     }
 }
