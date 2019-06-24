@@ -48,9 +48,11 @@ quoted_name = { QUOTE ~ IDENTIFIER ~ QUOTE }
 name_start = { "_" | ASCII_ALPHA }
 decimal_digit = { '0'..'9' }
 
-literal = _{ boolean | numeric }
+literal = _{ boolean | string_literal | numeric }
 boolean = { KEYWORD_FALSE | KEYWORD_TRUE }
 numeric = @{ ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* ~ ( "." ~ ASCII_DIGIT )? }
+string_literal = _{ PUSH("\"" | "'") ~ string ~ POP }
+string = @{ (!(NEWLINE | PEEK) ~ ANY)* }
 
 operator = _{
 	op_1 |

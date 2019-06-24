@@ -105,7 +105,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, r#"hello := fn {
-                hello_world println()
+                "Hello, world!" println()
             }
             "#).unwrap(),
             Statement::Binding(name, Expression::Atomic(AtomicExpression::Fn { .. })) => {

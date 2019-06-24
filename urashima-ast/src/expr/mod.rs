@@ -146,6 +146,10 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
                 let num = head.as_str().parse()?;
                 AtomicExpression::Integral(num).into()
             }
+            Rule::string => {
+                let text = head.as_str().into();
+                AtomicExpression::Str(text).into()
+            }
             Rule::fn_expression => {
                 let (parameters, body) = parse_fn_expression(&mut *arena, head.into_inner())?;
                 AtomicExpression::Fn { parameters, body }.into()
@@ -235,6 +239,28 @@ mod test {
         assert_pat!(
             Expression::from_str(&mut arena, "false").unwrap(),
             Expression::Atomic(AtomicExpression::False) => {}
+        );
+    }
+
+    #[test]
+    fn atomic_str_simple_1() {
+        let mut arena = ExprArena::new();
+        assert_pat!(
+            Expression::from_str(&mut arena, "'Hello world!'").unwrap(),
+            Expression::Atomic(AtomicExpression::Str(s)) => {
+                assert_eq!(s, "Hello world!");
+            }
+        );
+    }
+
+    #[test]
+    fn atomic_str_simple_2() {
+        let mut arena = ExprArena::new();
+        assert_pat!(
+            Expression::from_str(&mut arena, r#""Hello, world!""#).unwrap(),
+            Expression::Atomic(AtomicExpression::Str(s)) => {
+                assert_eq!(s, "Hello, world!");
+            }
         );
     }
 

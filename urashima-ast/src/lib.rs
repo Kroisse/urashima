@@ -20,8 +20,9 @@
 #[macro_use]
 mod testutils;
 
+mod parser;
+
 pub mod error;
 pub mod expr;
-pub mod parser;
 pub mod program;
 pub mod statement;

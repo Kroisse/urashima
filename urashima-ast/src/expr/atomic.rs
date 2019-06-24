@@ -6,7 +6,7 @@ use serde_derive_urashima::DeserializeSeed;
 use super::{Display, ExprArena, ExprIndex, Expression};
 use crate::{
     error::Fallible,
-    expr::{Pairs, Parse, Rule},
+    parser::{Pairs, Parse, Rule},
     statement::Statement,
 };
 
@@ -15,7 +15,7 @@ pub enum AtomicExpression {
     False,
     True,
     Integral(i64),
-    Str(String), // ?
+    Str(String),
     Name(Symbol),
     Record(Vec<(Symbol, ExprIndex)>),
     Block(BlockExpression),
