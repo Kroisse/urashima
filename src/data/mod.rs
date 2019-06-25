@@ -1,14 +1,16 @@
+pub mod convert;
 pub mod function;
+pub mod invoke;
 pub mod num;
 pub mod record;
-pub mod value;
 pub mod variant;
 
 pub use self::{
+    convert::FromNaru,
     function::Function,
+    invoke::{Invoke, NativeMethod},
     num::{Int, Nat},
     record::Record,
-    value::Value,
     variant::Variant,
 };
 pub use naru_symbol::{symbol, Symbol};

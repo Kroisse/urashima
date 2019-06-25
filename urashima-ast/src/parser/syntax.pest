@@ -57,10 +57,15 @@ string = @{ (!(NEWLINE | PEEK) ~ ANY)* }
 operator = _{
 	op_1 |
 	op_2 |
+	op_3 |
+	op_4 |
 	punctuation
 }
-op_1 = @{ ("+" | "-") ~ !PUNCT }
-op_2 = @{ ("*" | "/") ~ !PUNCT }
+
+op_1 = @{ ("==" | "!=") ~ !PUNCT }
+op_2 = @{ ("<=" | ">=" | "<" | ">") ~ !PUNCT }
+op_3 = @{ ("+" | "-") ~ !PUNCT }
+op_4 = @{ ("*" | "/") ~ !PUNCT }
 
 punctuation = @{ !(COMMA | SEMICOLON | LINE_COMMENT_START) ~ PUNCT+ }
 separator = _{ (SEP | line_comment)+ }

@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 generational-arena = "0.2"
 num-bigint = { version = "0.2", features = ["serde"] }
+num-traits = "0.2"

@@ -145,26 +145,14 @@ fn eval_invoke(
     ctx: &mut Capsule,
     receiver: &ExprIndex,
     method: &Symbol,
-    _arguments: &[ExprIndex],
+    arguments: &[ExprIndex],
 ) -> Fallible<Variant> {
     let receiver = receiver.eval(ctx)?;
-    if method == "println" {
-        match receiver {
-            Variant::Str(s) => {
-                ctx.write(s.as_bytes())?;
-                ctx.write(b"\n")?;
-                Ok(Variant::unit())
-            }
-            Variant::Int(i) => {
-                ctx.write(i.to_string().as_bytes())?;
-                ctx.write(b"\n")?;
-                Ok(Variant::unit())
-            }
-            _ => Err(Error::unimplemented()),
-        }
-    } else {
-        Err(Error::unimplemented())
-    }
+    let arguments = arguments
+        .iter()
+        .map(|i| i.eval(ctx))
+        .collect::<Fallible<Vec<_>>>()?;
+    receiver.invoke(ctx, method.clone(), &arguments)
 }
 
 impl<'arena> Evaluate for AtomicExpression {

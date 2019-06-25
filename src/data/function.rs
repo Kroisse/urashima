@@ -1,11 +1,10 @@
-use urashima_ast::expr::{BlockExpression, ExprIndex};
-
 use super::{Symbol, Variant};
 use crate::{
     capsule::Capsule,
     error::Fallible,
     eval::{eval_in_context, Evaluate},
 };
+use urashima_ast::expr::{BlockExpression, ExprIndex};
 
 #[derive(Clone, Debug)]
 pub struct Function {

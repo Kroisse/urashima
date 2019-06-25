@@ -52,6 +52,10 @@ impl Environment {
         self.arena.insert(value)
     }
 
+    pub(crate) fn get(&self, idx: Index<Variant>) -> Option<&Variant> {
+        self.arena.get(idx)
+    }
+
     pub(crate) fn add_function(&mut self, f: Function) -> Index<Function> {
         self.fn_arena.insert(f)
     }

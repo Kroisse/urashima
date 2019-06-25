@@ -104,6 +104,8 @@ lazy_static! {
     static ref PREC_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         Operator::new(Rule::op_1, Assoc::Left),
         Operator::new(Rule::op_2, Assoc::Left),
+        Operator::new(Rule::op_3, Assoc::Left),
+        Operator::new(Rule::op_4, Assoc::Left),
         Operator::new(Rule::punctuation, Assoc::Left),
     ]);
 }

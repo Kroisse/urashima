@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::prelude::*;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Weak};
@@ -99,8 +100,8 @@ impl Capsule {
         self.environment.bind(name, value);
     }
 
-    pub(crate) fn write(&mut self, bytes: &[u8]) -> Fallible<()> {
-        std::io::stdout().write_all(bytes).expect("write error");
+    pub(crate) fn print(&mut self, args: fmt::Arguments<'_>) -> Fallible<()> {
+        write!(std::io::stdout(), "{}", args).expect("write error");
         Ok(())
     }
 }
