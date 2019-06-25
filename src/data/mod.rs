@@ -13,16 +13,4 @@ pub use self::{
     record::Record,
     variant::Variant,
 };
-pub use naru_symbol::{symbol, Symbol};
-
-#[cfg(test)]
-mod test {
-    use std::mem;
-
-    use super::Symbol;
-
-    #[test]
-    fn symbol_size() {
-        assert!(mem::size_of::<Symbol>() <= 8);
-    }
-}
+pub use urashima_util::{symbol, Symbol};

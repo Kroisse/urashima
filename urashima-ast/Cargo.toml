@@ -10,11 +10,9 @@ deserialize = ["serde_derive_urashima"]
 [dependencies]
 failure = "0.1.5"
 lazy_static = "1.3"
-naru-symbol = { path = "../naru-symbol" }
 pest = "2.1"
 pest_derive = "2.1"
 serde = { version = "1.0.91", features = ["derive"] }
-smallvec = "0.6"
 urashima-util = { path = "../urashima-util" }
 
 [dependencies.serde_derive_urashima]

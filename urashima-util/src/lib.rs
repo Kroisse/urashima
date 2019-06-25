@@ -18,5 +18,11 @@
 
 pub mod arena;
 pub mod num;
+pub mod pkg;
+pub mod symbol;
 
-pub use crate::arena::{Arena, Index};
+pub use crate::{
+    arena::{Arena, Index},
+    pkg::PackagePath,
+    symbol::{symbol, Symbol},
+};

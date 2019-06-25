@@ -5,9 +5,10 @@ use std::sync::{Arc, Weak};
 
 use urashima_ast::{
     expr::{Alloc, ExprArena},
-    program::{PackagePath, PackageProgram},
+    program::PackageProgram,
     Parse,
 };
+use urashima_util::PackagePath;
 
 use crate::{
     data::Variant,
@@ -158,7 +159,7 @@ mod de {
 mod internal {
     use std::path::{Path, PathBuf};
 
-    use urashima_ast::program::PackagePath;
+    use urashima_util::PackagePath;
 
     use crate::error::{Error, Fallible};
 

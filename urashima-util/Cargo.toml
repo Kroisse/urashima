@@ -6,5 +6,8 @@ edition = "2018"
 
 [dependencies]
 generational-arena = "0.2"
+naru-symbol = { path = "../naru-symbol" }
 num-bigint = { version = "0.2", features = ["serde"] }
 num-traits = "0.2"
+serde = "1.0.91"
+smallvec = "0.6"

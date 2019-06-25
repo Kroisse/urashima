@@ -1,7 +1,7 @@
 use std::fmt;
 
 use failure::{Backtrace, Context, Fail};
-use naru_symbol::Symbol;
+use urashima_util::Symbol;
 
 use crate::parser::Rule;
 

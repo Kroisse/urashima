@@ -2,10 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 
 use chashmap::CHashMap;
-use urashima_ast::{
-    parse,
-    program::{PackagePath, ScriptProgram},
-};
+use urashima_ast::{parse, program::ScriptProgram};
+use urashima_util::PackagePath;
 
 use crate::{
     capsule::Capsule,

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use naru_symbol::Symbol;
+use urashima_util::Symbol;
 
 #[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;

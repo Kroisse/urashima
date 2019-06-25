@@ -8,8 +8,8 @@ use std::cell::RefCell;
 use std::fmt;
 
 use lazy_static::lazy_static;
-use naru_symbol::Symbol;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
+use urashima_util::Symbol;
 
 #[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;

@@ -1,8 +1,8 @@
 use std::fmt;
 
-use naru_symbol::Symbol;
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 use urashima_util::num::{Int, Nat};
+use urashima_util::Symbol;
 
 use super::{super::Expression, Alloc, ExprArena, ExprIndex};
 

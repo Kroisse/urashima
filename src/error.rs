@@ -3,7 +3,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use failure::{Backtrace, Context, Fail};
-use urashima_ast::program::PackagePath;
+use urashima_util::PackagePath;
 
 use crate::data::{symbol, Symbol};
 
