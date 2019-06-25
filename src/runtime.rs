@@ -2,7 +2,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 
 use chashmap::CHashMap;
-use urashima_ast::program::{PackagePath, ScriptProgram};
+use urashima_ast::{
+    parse,
+    program::{PackagePath, ScriptProgram},
+};
 
 use crate::{
     capsule::Capsule,
@@ -46,10 +49,9 @@ impl Runtime {
 
     pub fn execute(&self, path: impl AsRef<Path>) -> Fallible<()> {
         let path = path.as_ref();
-        let f = std::fs::File::open(path).map_err(|_| Error::load(path))?;
-        let prog: serde_yaml::Value = serde_yaml::from_reader(f).map_err(|_| Error::load(path))?;
+        let input = std::fs::read_to_string(path).map_err(|_| Error::load(path))?;
         let mut capsule = self.root_capsule();
-        let prog: ScriptProgram = capsule.parse(prog)?;
+        let prog: ScriptProgram = parse(&mut capsule.expr_arena, &input)?;
         prog.eval(&mut capsule)?;
         Ok(())
     }

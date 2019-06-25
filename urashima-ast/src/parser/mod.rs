@@ -13,7 +13,7 @@ pub(crate) struct Syntax;
 pub(crate) type Pair<'a> = pest::iterators::Pair<'a, Rule>;
 pub(crate) type Pairs<'a> = pest::iterators::Pairs<'a, Rule>;
 
-pub(crate) trait Parse: Sized {
+pub trait Parse: Sized {
     const RULE: Rule;
 
     fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self>;
@@ -29,7 +29,6 @@ pub(crate) trait Parse: Sized {
 
     fn from_str(arena: &mut ExprArena, input: &str) -> Fallible<Self> {
         let pairs = Syntax::parse(Self::RULE, input)?;
-        dbg!(&pairs);
         if let Some(item) = pairs.peek() {
             match Self::from_pair(arena, item) {
                 Ok(v) => {
@@ -56,4 +55,11 @@ pub(crate) fn ensure_single(mut pairs: Pairs<'_>) -> Pair<'_> {
         unreachable!("{:?}", second);
     }
     inner
+}
+
+pub fn parse<T>(arena: &mut ExprArena, input: &str) -> Fallible<T>
+where
+    T: Parse,
+{
+    <T as Parse>::from_str(arena, input)
 }

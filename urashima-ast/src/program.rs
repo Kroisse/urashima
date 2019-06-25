@@ -215,6 +215,25 @@ impl Parse for Binding {
     }
 }
 
+impl Parse for ScriptProgram {
+    const RULE: Rule = Rule::script_program;
+
+    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+        let mut statements = vec![];
+        for item in pairs {
+            match item.as_rule() {
+                Rule::statement => {
+                    statements.push(Statement::from_pairs(&mut *arena, item.into_inner())?);
+                }
+                Rule::EOI => (),
+                _ => unreachable!("{:?}", item),
+            }
+        }
+
+        Ok(ScriptProgram { statements })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

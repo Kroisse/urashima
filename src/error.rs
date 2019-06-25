@@ -131,6 +131,12 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
+impl From<urashima_ast::error::Error> for Error {
+    fn from(err: urashima_ast::error::Error) -> Self {
+        ErrorKind::Parse(err.to_string()).into()
+    }
+}
+
 pub type Fallible<T> = Result<T, Error>;
 
 #[derive(Debug)]

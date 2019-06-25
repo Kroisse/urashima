@@ -26,3 +26,5 @@ pub mod error;
 pub mod expr;
 pub mod program;
 pub mod statement;
+
+pub use crate::parser::parse;

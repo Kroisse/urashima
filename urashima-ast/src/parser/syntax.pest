@@ -5,6 +5,13 @@ package_program = _{
 	EOI
 }
 
+script_program = _{
+	SOI ~
+	separator? ~
+	statement* ~
+	EOI
+}
+
 directive = _{ use_declaration ~ separator }
 
 use_declaration = { KEYWORD_USE ~ use_path ~ use_imports? }
