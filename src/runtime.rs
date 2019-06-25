@@ -65,6 +65,17 @@ mod test {
 
     #[test]
     fn helloworld() -> Fallible<()> {
+        let s = include_str!("../tests/helloworld.n");
+        let rt = Runtime::new();
+        let mut capsule = rt.root_capsule();
+        let prog: ScriptProgram = parse(&mut capsule.expr_arena, &s)?;
+        capsule.eval(&prog)?;
+        Ok(())
+    }
+
+    #[cfg(deserialize)]
+    #[test]
+    fn helloworld_yaml() -> Fallible<()> {
         let s = include_bytes!("../tests/helloworld.yaml");
         let prog: serde_yaml::Value = serde_yaml::from_slice(&*s)?;
         let rt = Runtime::new();

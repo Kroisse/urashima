@@ -3,10 +3,10 @@ use std::io::prelude::*;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Weak};
 
-use serde::de::{DeserializeSeed, Deserializer};
 use urashima_ast::{
     expr::{Alloc, ExprArena},
     program::{PackagePath, PackageProgram},
+    Parse,
 };
 
 use crate::{
@@ -23,25 +23,6 @@ pub struct Capsule {
     pub(crate) expr_arena: ExprArena,
 }
 
-pub(crate) trait Parse<'a>: Sized {
-    fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
-    where
-        D: for<'de> Deserializer<'de>;
-}
-
-impl<'a, T: 'static> Parse<'a> for T
-where
-    T: Sized,
-    Alloc<'a, T>: for<'de> DeserializeSeed<'de, Value = T>,
-{
-    fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
-    where
-        D: for<'de> Deserializer<'de>,
-    {
-        DeserializeSeed::deserialize(capsule.alloc::<T>(), deserializer).map_err(Error::from_de)
-    }
-}
-
 impl Capsule {
     pub(crate) fn root(ctx: RuntimeContextRef) -> Capsule {
         Capsule {
@@ -51,12 +32,11 @@ impl Capsule {
         }
     }
 
-    pub(crate) fn parse<'a, T, D>(&'a mut self, deserializer: D) -> Fallible<T>
+    pub(crate) fn parse_sourcecode<'a, T>(&'a mut self, input: &str) -> Fallible<T>
     where
-        T: Parse<'a>,
-        D: for<'de> Deserializer<'de>,
+        T: Parse,
     {
-        Parse::parse(self, deserializer)
+        Ok(urashima_ast::parse(&mut self.expr_arena, input)?)
     }
 
     pub fn eval<T>(&mut self, code: &T) -> Fallible<T::Value>
@@ -75,9 +55,9 @@ impl Capsule {
                 return entry;
             }
             res = (|| {
-                let prog = self::internal::load(&self.ctx.paths, &path)?;
+                let input = self::internal::load(&self.ctx.paths, &path)?;
                 let mut pkg_capsule = Capsule::root(self.ctx.clone());
-                let prog: PackageProgram = pkg_capsule.parse(prog)?;
+                let prog: PackageProgram = pkg_capsule.parse_sourcecode(&input)?;
                 prog.eval(&mut pkg_capsule)?;
                 let pkg = Package {
                     environment: pkg_capsule.environment,
@@ -141,30 +121,63 @@ impl<'a> DerefMut for ContextGuard<'a> {
     }
 }
 
+#[cfg(deserialize)]
+mod de {
+    use serde::de::{DeserializeSeed, Deserializer};
+
+    pub(crate) trait Parse<'a>: Sized {
+        fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
+        where
+            D: for<'de> Deserializer<'de>;
+    }
+
+    impl<'a, T: 'static> Parse<'a> for T
+    where
+        T: Sized,
+        Alloc<'a, T>: for<'de> DeserializeSeed<'de, Value = T>,
+    {
+        fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
+        where
+            D: for<'de> Deserializer<'de>,
+        {
+            DeserializeSeed::deserialize(capsule.alloc::<T>(), deserializer).map_err(Error::from_de)
+        }
+    }
+
+    impl Capsule {
+        pub(crate) fn parse<'a, T, D>(&'a mut self, deserializer: D) -> Fallible<T>
+        where
+            T: Parse<'a>,
+            D: for<'de> Deserializer<'de>,
+        {
+            Parse::parse(self, deserializer)
+        }
+    }
+}
+
 mod internal {
-    use std::fs::File;
     use std::path::{Path, PathBuf};
 
     use urashima_ast::program::PackagePath;
 
     use crate::error::{Error, Fallible};
 
-    pub(super) fn load(paths: &[PathBuf], pkg_path: &PackagePath) -> Fallible<serde_yaml::Value> {
+    pub(super) fn load(paths: &[PathBuf], pkg_path: &PackagePath) -> Fallible<String> {
         for base_path in paths {
             let mut path = base_path.clone();
             path.extend(pkg_path.into_iter().map(|i| i.as_ref()));
-            path.set_extension("yaml");
+            path.set_extension("n");
             log::info!("{}", path.display());
             if path.is_file() {
-                return Ok(from_path(&path).unwrap());
+                return Ok(from_path(&path)?);
             }
         }
         Err(Error::import(pkg_path))
     }
 
-    fn from_path(path: impl AsRef<Path>) -> failure::Fallible<serde_yaml::Value> {
-        let f = File::open(path.as_ref())?;
-        let pkg = serde_yaml::from_reader(f)?;
-        Ok(pkg)
+    fn from_path(path: impl AsRef<Path>) -> Fallible<String> {
+        let path = path.as_ref();
+        let input = std::fs::read_to_string(path).map_err(|_| Error::load(path))?;
+        Ok(input)
     }
 }

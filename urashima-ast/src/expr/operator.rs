@@ -1,16 +1,19 @@
 use std::fmt;
 
 use naru_symbol::Symbol;
+
+#[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Display, ExprIndex};
 
-#[derive(Clone, Debug, DeserializeSeed)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub enum OperatorExpression {
-    #[serde(rename = "infix")]
+    #[cfg_attr(deserialize, serde(rename = "infix"))]
     Infix(Symbol, ExprIndex, ExprIndex),
 
-    #[serde(rename = "new")]
+    #[cfg_attr(deserialize, serde(rename = "new"))]
     New(ExprIndex),
 }
 

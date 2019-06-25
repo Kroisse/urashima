@@ -1,8 +1,10 @@
+#[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{BlockExpression, ExprIndex};
 
-#[derive(Clone, Debug, DeserializeSeed)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub enum ControlFlowExpression {
     If {
         cond: ExprIndex,

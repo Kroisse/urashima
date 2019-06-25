@@ -5,19 +5,6 @@ use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Vis
 use urashima_util::num::{Int, Nat};
 
 use super::{super::Expression, Alloc, ExprArena, ExprIndex};
-use crate::{
-    error::Fallible,
-    parser::{Pairs, Parse, Rule},
-};
-
-impl Parse for ExprIndex {
-    const RULE: Rule = Rule::expression;
-
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
-        let expr = Expression::from_pairs(&mut *arena, pairs)?;
-        Ok(arena.insert(expr))
-    }
-}
 
 impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, ExprIndex> {
     /// The type produced by using this seed.

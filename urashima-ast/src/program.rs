@@ -1,6 +1,8 @@
 use naru_symbol::Symbol;
-use serde_derive_urashima::DeserializeSeed;
 use smallvec::SmallVec;
+
+#[cfg(deserialize)]
+use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     error::Fallible,
@@ -11,7 +13,7 @@ use crate::{
 
 pub use self::internal::PackagePath;
 
-#[derive(DeserializeSeed)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub struct PackageProgram {
     /// Dependencies
     pub uses: Vec<PackageDep>,
@@ -23,19 +25,20 @@ pub struct PackageProgram {
     pub bindings: Vec<Binding>,
 }
 
-#[derive(Clone, Debug, DeserializeSeed, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub struct PackageDep {
     pub path: PackagePath,
     pub imports: Vec<Symbol>,
 }
 
-#[derive(DeserializeSeed)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub struct Binding {
     pub name: Symbol,
     pub value: Expression,
 }
 
-#[derive(DeserializeSeed)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub struct ScriptProgram {
     pub statements: Vec<Statement>,
 }
@@ -45,10 +48,9 @@ mod internal {
     use std::iter::FromIterator;
     use std::slice;
 
-    use serde::de::{Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
+    use serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
 
     use super::*;
-    use crate::expr::Alloc;
 
     #[derive(Clone, Debug, Eq, Hash, PartialEq)]
     pub struct PackagePath(SmallVec<[Symbol; 4]>);
@@ -102,14 +104,22 @@ mod internal {
         }
     }
 
-    impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, PackagePath> {
-        type Value = PackagePath;
+    #[cfg(deserialize)]
+    mod de {
+        use serde::de::DeserializeSeed;
 
-        fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            Deserialize::deserialize(deserializer)
+        use super::*;
+        use crate::expr::Alloc;
+
+        impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, PackagePath> {
+            type Value = PackagePath;
+
+            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                Deserialize::deserialize(deserializer)
+            }
         }
     }
 

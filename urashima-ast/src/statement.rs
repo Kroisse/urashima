@@ -1,4 +1,6 @@
 use naru_symbol::Symbol;
+
+#[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
@@ -8,7 +10,8 @@ use crate::{
     program::{Binding, PackageDep},
 };
 
-#[derive(Clone, Debug, DeserializeSeed)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub enum Statement {
     Binding(Symbol, Expression),
     Expr(Expression),

@@ -1,6 +1,8 @@
 use std::fmt;
 
 use naru_symbol::Symbol;
+
+#[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Display, ExprArena, ExprIndex, Expression};
@@ -10,7 +12,8 @@ use crate::{
     statement::Statement,
 };
 
-#[derive(Clone, Debug, DeserializeSeed)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub enum AtomicExpression {
     False,
     True,
@@ -25,7 +28,8 @@ pub enum AtomicExpression {
     },
 }
 
-#[derive(Clone, Debug, DeserializeSeed)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub struct BlockExpression {
     statements: Vec<Statement>,
     returns: ExprIndex,

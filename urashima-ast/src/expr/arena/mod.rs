@@ -1,14 +1,30 @@
+#[cfg(deserialize)]
 mod impls;
 
 use std::marker::PhantomData;
 
-use serde::de::{self, DeserializeSeed, Deserializer, Visitor};
 use urashima_util::{Arena, Index};
 
+#[cfg(deserialize)]
+use serde::de::{self, DeserializeSeed, Deserializer, Visitor};
+
 use super::Expression;
+use crate::{
+    error::Fallible,
+    parser::{Pairs, Parse, Rule},
+};
 
 pub type ExprArena = Arena<Expression>;
 pub type ExprIndex = Index<Expression>;
+
+impl Parse for ExprIndex {
+    const RULE: Rule = Rule::expression;
+
+    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+        let expr = Expression::from_pairs(&mut *arena, pairs)?;
+        Ok(arena.insert(expr))
+    }
+}
 
 pub struct Alloc<'a, T>(&'a mut ExprArena, PhantomData<T>);
 
@@ -30,6 +46,7 @@ impl<'a, 'de, T> Alloc<'a, T> {
 
 /// If the missing field is of type `Option<T>` then treat is as `None`,
 /// otherwise it is an error.
+#[cfg(deserialize)]
 pub fn missing_field<'de, V, E>(seed: V, field: &'static str) -> Result<V::Value, E>
 where
     V: DeserializeSeed<'de>,

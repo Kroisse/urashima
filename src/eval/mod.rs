@@ -79,7 +79,7 @@ impl Evaluate for Statement {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(deserialize, test))]
 mod test_stmt {
     use failure::Fallible;
     use serde_json::json;

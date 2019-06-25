@@ -1,23 +1,26 @@
 use std::fmt;
 
 use naru_symbol::Symbol;
+
+#[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Display, ExprIndex};
 
-#[derive(Clone, Debug, DeserializeSeed)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
 pub enum CallExpression {
-    #[serde(alias = "Call")]
+    #[cfg_attr(deserialize, serde(alias = "Call"))]
     FunctionCall {
         callee: ExprIndex,
-        #[serde(default)]
+        #[cfg_attr(deserialize, serde(default))]
         arguments: Vec<ExprIndex>,
     },
-    #[serde(alias = "Invoke")]
+    #[cfg_attr(deserialize, serde(alias = "Invoke"))]
     MethodInvocation {
         receiver: ExprIndex,
         method: Symbol,
-        #[serde(default)]
+        #[cfg_attr(deserialize, serde(default))]
         arguments: Vec<ExprIndex>,
     },
 }

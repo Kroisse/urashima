@@ -10,6 +10,8 @@ use std::fmt;
 use lazy_static::lazy_static;
 use naru_symbol::Symbol;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
+
+#[cfg(deserialize)]
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
@@ -25,8 +27,9 @@ pub use self::{
     operator::OperatorExpression,
 };
 
-#[derive(Clone, Debug, DeserializeSeed)]
-#[serde(untagged)]
+#[derive(Clone, Debug)]
+#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(deserialize, serde(untagged))]
 pub enum Expression {
     Atomic(AtomicExpression),
     Operator(OperatorExpression),
