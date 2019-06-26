@@ -63,6 +63,10 @@ impl Expression {
         Expression::Record(vec![])
     }
 
+    pub(crate) fn call(callee: ExprIndex, arguments: Vec<ExprIndex>) -> Self {
+        Expression::Call(CallExpression::new(callee, arguments))
+    }
+
     pub(crate) fn invoke(receiver: ExprIndex, method: Symbol, arguments: Vec<ExprIndex>) -> Self {
         Expression::Invoke(InvokeExpression::new(receiver, method, arguments))
     }
@@ -114,6 +118,7 @@ impl<'a> Print for Expression {
             True => f.write_str("true"),
             Integral(i) => write!(f, "{}", i),
             Str(s) => write!(f, "{}", s),
+            Name(name) => f.write_str(&name),
             Block(expr) => Print::fmt(expr, f),
             Fn(expr) => Print::fmt(expr, f),
 
@@ -205,6 +210,10 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
     };
     for rest in pairs {
         match rest.as_rule() {
+            Rule::call_arguments => {
+                let args = parse_call_arguments(arena, rest.into_inner())?;
+                expr = Expression::call(arena.insert(expr), args);
+            }
             Rule::method_call => {
                 let (method, args) = parse_method_call(&mut *arena, rest.into_inner())?;
                 expr = Expression::invoke(arena.insert(expr), method, args);
@@ -215,25 +224,32 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
     Ok(expr)
 }
 
-fn parse_method_call(
+fn parse_call_arguments(
     arena: &mut ExprArena,
-    mut pairs: Pairs<'_>,
-) -> Fallible<(Symbol, Vec<ExprIndex>)> {
-    let method_name: Symbol = if let Some(head) = pairs.next() {
-        match head.as_rule() {
-            Rule::name => head.as_str().into(),
-            _ => unreachable!(),
-        }
-    } else {
-        unreachable!();
-    };
-    let arguments = pairs
+    pairs: Pairs<'_>,
+) -> Fallible<Vec<ExprIndex>> {
+    pairs
         .map(|rest| match rest.as_rule() {
             Rule::expression => ExprIndex::from_pair(&mut *arena, rest),
             _ => unreachable!(),
         })
-        .collect::<Fallible<_>>()?;
-    Ok((method_name, arguments))
+        .collect::<Fallible<_>>()
+}
+
+fn parse_method_call(
+    arena: &mut ExprArena,
+    mut pairs: Pairs<'_>,
+) -> Fallible<(Symbol, Vec<ExprIndex>)> {
+    if let (Some(name), Some(args), None) = (pairs.next(), pairs.next(), pairs.next()) {
+        if name.as_rule() != Rule::name || args.as_rule() != Rule::call_arguments {
+            unreachable!();
+        }
+        let method_name = name.as_str().into();
+        let arguments = parse_call_arguments(arena, pairs)?;
+        Ok((method_name, arguments))
+    } else {
+        unreachable!()
+    }
 }
 
 #[cfg(test)]

@@ -32,8 +32,9 @@ continue_statement = { KEYWORD_CONTINUE }
 return_statement = { KEYWORD_RETURN ~ expression? }
 
 expression = { operand_expression ~ (operator ~ operand_expression)* }
-operand_expression = { atomic_expression ~ method_call* }
-method_call = { name ~ grouping_paren_open ~ (expression ~ (COMMA ~ expression)* ~ COMMA?)? ~ grouping_paren_close }
+operand_expression = { atomic_expression ~ call_arguments* ~ method_call* }
+call_arguments = { grouping_paren_open ~ (expression ~ (COMMA ~ expression)* ~ COMMA?)? ~ grouping_paren_close }
+method_call = { name ~ call_arguments }
 atomic_expression = _{
 	grouping_paren |
 	grouping_brace |

@@ -38,6 +38,16 @@ pub struct InvokeExpression {
     __opaque: (),
 }
 
+impl CallExpression {
+    pub(super) fn new(callee: ExprIndex, arguments: Vec<ExprIndex>) -> Self {
+        CallExpression {
+            callee,
+            arguments,
+            __opaque: (),
+        }
+    }
+}
+
 impl InvokeExpression {
     pub(super) fn new(receiver: ExprIndex, method: Symbol, arguments: Vec<ExprIndex>) -> Self {
         InvokeExpression {
