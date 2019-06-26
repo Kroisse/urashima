@@ -13,4 +13,4 @@ guard = "0.5"
 urashima = { path = ".." }
 
 [build-dependencies]
-cbindgen = "0.8"
+cbindgen = "0.9"
