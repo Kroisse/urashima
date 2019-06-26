@@ -1,16 +1,21 @@
 use urashima_util::Symbol;
 
-#[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
-
 use super::ExprIndex;
 use crate::print::{self, Print};
 
+#[cfg(feature = "deserialize")]
+use serde_derive_state::DeserializeState;
+
+#[cfg(feature = "deserialize")]
+use super::ExprArena;
+
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct CallExpression {
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub callee: ExprIndex,
-    #[cfg_attr(feature = "deserialize", serde(default))]
+    #[cfg_attr(feature = "deserialize", serde(default, state))]
     pub arguments: Vec<ExprIndex>,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]
@@ -18,11 +23,13 @@ pub struct CallExpression {
 }
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct InvokeExpression {
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub receiver: ExprIndex,
     pub method: Symbol,
-    #[cfg_attr(feature = "deserialize", serde(default))]
+    #[cfg_attr(feature = "deserialize", serde(default, state))]
     pub arguments: Vec<ExprIndex>,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]

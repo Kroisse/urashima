@@ -1,18 +1,20 @@
-use serde::de::{Deserialize, DeserializeSeed, Deserializer};
 use urashima_util::{PackagePath, Symbol};
 
 #[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
+use serde_derive::Deserialize;
+#[cfg(feature = "deserialize")]
+use serde_derive_state::DeserializeState;
 
 use crate::{
     error::Fallible,
-    expr::{Alloc, ExprArena, Expression},
+    expr::{ExprArena, Expression},
     parser::{Pairs, Parse, Rule},
     print::{self, Print},
     statement::Statement,
 };
 
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct PackageProgram {
     /// Dependencies
     pub uses: Vec<PackageDep>,
@@ -21,37 +23,31 @@ pub struct PackageProgram {
     /// Assume that binding declarations are already sorted by topological order.
     ///
     /// https://narucode.org/0/#Binding
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub bindings: Vec<Binding>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct PackageDep {
     pub path: PackagePath,
     pub imports: Vec<Symbol>,
 }
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct Binding {
     pub name: Symbol,
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub value: Expression,
 }
 
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct ScriptProgram {
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub statements: Vec<Statement>,
-}
-
-impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, PackagePath> {
-    type Value = PackagePath;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Deserialize::deserialize(deserializer)
-    }
 }
 
 impl Parse for PackageProgram {

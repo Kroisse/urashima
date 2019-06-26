@@ -1,7 +1,6 @@
-#[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
+use lazy_static::lazy_static;
 
-use super::{ExprArena, ExprIndex, Expression};
+use super::{ExprArena, Expression};
 use crate::{
     error::Fallible,
     parser::{Pairs, Parse, Rule},
@@ -10,30 +9,38 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct BlockExpression {
     statements: Vec<Statement>,
-    returns: ExprIndex,
 
-    #[cfg_attr(feature = "deserialize", serde(skip))]
     __opaque: (),
 }
 
+lazy_static! {
+    static ref UNIT: Expression = Expression::unit();
+}
+
 impl BlockExpression {
-    pub(crate) fn single(expr: ExprIndex) -> Self {
+    pub(crate) fn single(expr: Expression) -> Self {
         BlockExpression {
-            statements: vec![],
-            returns: expr,
+            statements: vec![Statement::Expr(expr)],
             __opaque: (),
         }
     }
 
     pub fn statements(&self) -> &[Statement] {
-        &self.statements
+        if let Some(Statement::Expr(_)) = self.statements.last() {
+            &self.statements[..self.statements.len() - 1]
+        } else {
+            &self.statements[..]
+        }
     }
 
-    pub fn returns(&self) -> ExprIndex {
-        self.returns
+    pub fn returns(&self) -> &Expression {
+        if let Some(Statement::Expr(expr)) = self.statements.last() {
+            expr
+        } else {
+            &UNIT
+        }
     }
 }
 
@@ -42,22 +49,11 @@ impl Parse for BlockExpression {
 
     fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
         let mut statements = vec![];
-        let mut expr = Expression::unit();
         for item in pairs {
-            match item.as_rule() {
-                Rule::statement => {
-                    statements.push(Statement::from_pairs(&mut *arena, item.into_inner())?);
-                }
-                Rule::expression => {
-                    expr = Expression::from_pairs(&mut *arena, item.into_inner())?;
-                }
-                _ => unreachable!("{:?}", item),
-            }
+            statements.push(Statement::from_pair(&mut *arena, item)?);
         }
-        let returns = arena.insert(expr);
         Ok(BlockExpression {
             statements,
-            returns,
             __opaque: (),
         })
     }
@@ -72,7 +68,7 @@ impl Print for BlockExpression {
                 Print::fmt(stmt, f)?;
                 f.next_line()?;
             }
-            let expr = f.get(self.returns())?;
+            let expr = self.returns();
             if !expr.is_unit() {
                 Print::fmt(expr, f)?;
                 f.next_line()?;
@@ -81,5 +77,25 @@ impl Print for BlockExpression {
         })?;
         f.write_str("}")?;
         Ok(())
+    }
+}
+
+#[cfg(feature = "deserialize")]
+mod de {
+    use serde_state::de::{DeserializeState, Deserializer};
+
+    use super::*;
+
+    impl<'de> DeserializeState<'de, ExprArena> for BlockExpression {
+        fn deserialize_state<D>(seed: &mut ExprArena, deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let statements = Vec::deserialize_state(seed, deserializer)?;
+            Ok(BlockExpression {
+                statements,
+                __opaque: (),
+            })
+        }
     }
 }

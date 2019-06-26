@@ -199,12 +199,10 @@ mod test_expr_atomic {
     #[test]
     fn eval_block() -> Fallible<()> {
         let expr = json!({
-            "Block": {
-                "statements": [
-                    {"Binding": ["foo", {"Integral": 42}]},
-                ],
-                "returns": {"Name": "foo"},
-            },
+            "Block": [
+                {"Binding": ["foo", {"Integral": 42}]},
+                {"Expr": {"Name": "foo"}},
+            ],
         });
 
         let rt = Runtime::new();
@@ -225,10 +223,9 @@ mod test_expr_atomic {
             "Binding": ["answer_to_the_ultimate_question_of_life_the_universe_and_everything", {
                 "Fn": {
                     "parameters": [],
-                    "body": {
-                        "statements": [],
-                        "returns": {"Integral": 42},
-                    }
+                    "body": [
+                        {"Expr": {"Integral": 42}},
+                    ],
                 }
             }]
         }))?;
@@ -258,14 +255,13 @@ mod test_expr_atomic {
             "Binding": ["increase", {
                 "Fn": {
                     "parameters": ["n"],
-                    "body": {
-                        "statements": [],
-                        "returns": {"Infix": [
+                    "body": [
+                        {"Expr": {"Infix": [
                             "+",
                             {"Name": "n"},
                             {"Integral": 1},
-                        ]},
-                    }
+                        ]}},
+                    ],
                 }
             }]
         }))?;
@@ -298,14 +294,13 @@ mod test_expr_atomic {
                 "Binding": ["increase", {
                     "Fn": {
                         "parameters": ["n"],
-                        "body": {
-                            "statements": [],
-                            "returns": {"Infix": [
+                        "body": [
+                            {"Expr": {"Infix": [
                                 "+",
                                 {"Name": "n"},
                                 {"Name": "ANSWER"},
-                            ]},
-                        }
+                            ]}},
+                        ],
                     }
                 }]
             }),
@@ -343,14 +338,8 @@ mod test_expr_call {
         let mut code = json!({
             "If": {
                 "cond": "True",
-                "then_blk": {
-                    "statements": [],
-                    "returns": {"Integral": 1},
-                },
-                "else_blk": {
-                    "statements": [],
-                    "returns": {"Integral": 2},
-                }
+                "then_blk": [{"Expr": {"Integral": 1}}],
+                "else_blk": [{"Expr": {"Integral": 2}}],
             },
         });
 

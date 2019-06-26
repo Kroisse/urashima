@@ -114,41 +114,18 @@ impl<'a> DerefMut for ContextGuard<'a> {
 
 #[cfg(feature = "deserialize")]
 mod de {
-    use serde::de::{DeserializeSeed, Deserializer};
-    use urashima_ast::expr::Alloc;
+    use serde_state::de::{DeserializeState, Deserializer};
 
     use super::*;
 
-    pub(crate) trait Parse<'a>: Sized {
-        fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
-        where
-            D: for<'de> Deserializer<'de>;
-    }
-
-    impl<'a, T: 'static> Parse<'a> for T
-    where
-        T: Sized,
-        Alloc<'a, T>: for<'de> DeserializeSeed<'de, Value = T>,
-    {
-        fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
-        where
-            D: for<'de> Deserializer<'de>,
-        {
-            DeserializeSeed::deserialize(capsule.alloc::<T>(), deserializer).map_err(Error::from_de)
-        }
-    }
-
     impl Capsule {
-        pub(crate) fn parse<'a, T, D>(&'a mut self, deserializer: D) -> Fallible<T>
+        pub(crate) fn parse<'de, T, D>(&mut self, deserializer: D) -> Fallible<T>
         where
-            T: Parse<'a>,
-            D: for<'de> Deserializer<'de>,
+            T: DeserializeState<'de, ExprArena>,
+            D: Deserializer<'de>,
         {
-            Parse::parse(self, deserializer)
-        }
-
-        pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
-            Alloc::from(&mut self.expr_arena)
+            DeserializeState::deserialize_state(&mut self.expr_arena, deserializer)
+                .map_err(Error::from_de)
         }
     }
 }

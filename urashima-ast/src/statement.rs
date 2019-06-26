@@ -1,5 +1,5 @@
 #[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
+use serde_derive_state::DeserializeState;
 
 use crate::{
     error::Fallible,
@@ -10,11 +10,12 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub enum Statement {
-    Binding(Binding),
-    Expr(Expression),
-    Return(Expression),
+    Binding(#[cfg_attr(feature = "deserialize", serde(state))] Binding),
+    Expr(#[cfg_attr(feature = "deserialize", serde(state))] Expression),
+    Return(#[cfg_attr(feature = "deserialize", serde(state))] Expression),
     Break,
     Continue,
     Use(PackageDep),

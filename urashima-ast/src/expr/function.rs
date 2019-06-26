@@ -1,7 +1,9 @@
 use urashima_util::Symbol;
 
 #[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
+use serde_derive::Deserialize;
+#[cfg(feature = "deserialize")]
+use serde_derive_state::DeserializeState;
 
 use super::{BlockExpression, ExprArena};
 use crate::{
@@ -11,9 +13,11 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct FunctionExpression {
     pub parameters: Vec<Parameter>,
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub body: BlockExpression,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]
@@ -21,7 +25,7 @@ pub struct FunctionExpression {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Parameter(Symbol);
 
 impl Parameter {

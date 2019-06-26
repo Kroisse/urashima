@@ -29,6 +29,7 @@ impl fmt::Display for Error {
 }
 
 impl Error {
+    #[cfg(feature = "deserialize")]
     pub(crate) fn from_de<E>(err: E) -> Self
     where
         E: serde::de::Error,

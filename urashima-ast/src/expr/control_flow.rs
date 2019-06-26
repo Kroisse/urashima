@@ -1,5 +1,5 @@
 #[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
+use serde_derive_state::DeserializeState;
 
 use super::{BlockExpression, ExprArena, ExprIndex};
 use crate::{
@@ -8,11 +8,16 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct IfExpression {
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub cond: ExprIndex,
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub then_blk: BlockExpression,
+    // #[cfg_attr(feature = "deserialize", serde(state))]
     // pub elseif: Vec<(ExprIndex, BlockExpression)>,
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub else_blk: Option<BlockExpression>,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]
@@ -20,8 +25,10 @@ pub struct IfExpression {
 }
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct LoopExpression {
+    #[cfg_attr(feature = "deserialize", serde(state))]
     pub blk: BlockExpression,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]
@@ -37,12 +44,8 @@ impl Parse for IfExpression {
         let else_blk = pairs
             .next()
             .map(|pair| match pair.as_rule() {
-                Rule::if_expression => {
-                    IfExpression::from_pairs(arena, pair.into_inner()).map(|expr| {
-                        let idx = arena.insert(expr.into());
-                        BlockExpression::single(idx)
-                    })
-                }
+                Rule::if_expression => IfExpression::from_pairs(arena, pair.into_inner())
+                    .map(|expr| BlockExpression::single(expr.into())),
                 Rule::grouping_brace => BlockExpression::from_pairs(arena, pair.into_inner()),
                 _ => unreachable!("{:?}", pair),
             })

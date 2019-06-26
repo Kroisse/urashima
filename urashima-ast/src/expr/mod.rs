@@ -1,4 +1,4 @@
-pub(crate) mod arena;
+mod arena;
 mod block;
 mod call;
 mod control_flow;
@@ -11,7 +11,7 @@ use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use urashima_util::Symbol;
 
 #[cfg(feature = "deserialize")]
-use serde_derive_urashima::DeserializeSeed;
+use serde_derive_state::DeserializeState;
 
 use crate::{
     error::{Error, Fallible},
@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub use self::{
-    arena::{Alloc, ExprArena, ExprIndex},
+    arena::{ExprArena, ExprIndex},
     block::BlockExpression,
     call::{CallExpression, InvokeExpression},
     control_flow::{IfExpression, LoopExpression},
@@ -28,7 +28,8 @@ pub use self::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeState))]
+#[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub enum Expression {
     // Atomic
     False,
@@ -36,19 +37,24 @@ pub enum Expression {
     Integral(i64),
     Str(String),
     Name(Symbol),
-    Record(Vec<(Symbol, ExprIndex)>),
-    Block(BlockExpression),
-    Fn(FunctionExpression),
+
+    Record(#[cfg_attr(feature = "deserialize", serde(state))] Vec<(Symbol, ExprIndex)>),
+    Block(#[cfg_attr(feature = "deserialize", serde(state))] BlockExpression),
+    Fn(#[cfg_attr(feature = "deserialize", serde(state))] FunctionExpression),
 
     // Operator
-    New(ExprIndex),
-    Infix(Symbol, ExprIndex, ExprIndex),
-    Call(CallExpression),
-    Invoke(InvokeExpression),
+    New(#[cfg_attr(feature = "deserialize", serde(state))] ExprIndex),
+    Infix(
+        Symbol,
+        #[cfg_attr(feature = "deserialize", serde(state))] ExprIndex,
+        #[cfg_attr(feature = "deserialize", serde(state))] ExprIndex,
+    ),
+    Call(#[cfg_attr(feature = "deserialize", serde(state))] CallExpression),
+    Invoke(#[cfg_attr(feature = "deserialize", serde(state))] InvokeExpression),
 
     // Control flow
-    If(IfExpression),
-    Loop(LoopExpression),
+    If(#[cfg_attr(feature = "deserialize", serde(state))] IfExpression),
+    Loop(#[cfg_attr(feature = "deserialize", serde(state))] LoopExpression),
 }
 
 impl Expression {
@@ -141,7 +147,7 @@ impl Parse for Expression {
                 Rule::operand_expression => {
                     parse_operand_expression(&mut *cell.borrow_mut(), p.into_inner())
                 }
-                _ => unreachable!("{:?}", p),
+                _ => unreachable!("{:#?}", p),
             },
             |left, op, right| {
                 let mut arena = cell.borrow_mut();

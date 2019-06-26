@@ -31,8 +31,7 @@ break_statement = { KEYWORD_BREAK }
 continue_statement = { KEYWORD_CONTINUE }
 return_statement = { KEYWORD_RETURN ~ expression? }
 
-expression = { operator_expression | operand_expression }
-operator_expression = _{ operand_expression ~ (operator ~ operand_expression)* }
+expression = { operand_expression ~ (operator ~ operand_expression)* }
 operand_expression = { atomic_expression ~ method_call* }
 method_call = { name ~ grouping_paren_open ~ (expression ~ (COMMA ~ expression)* ~ COMMA?)? ~ grouping_paren_close }
 atomic_expression = _{
@@ -57,7 +56,7 @@ grouping_brace = {
 	grouping_brace_open ~
 	separator? ~
 	(statement ~ separator)* ~
-	((expression | statement) ~ separator?)? ~
+	(statement ~ separator?)? ~
 	grouping_brace_close
 }
 
@@ -69,8 +68,8 @@ grouping_brace_close = _{ "}" }
 name = @{ quoted_name | !KEYWORD ~ IDENTIFIER }
 quoted_name = { QUOTE ~ IDENTIFIER ~ QUOTE }
 
-name_start = { "_" | ASCII_ALPHA }
-decimal_digit = { ASCII_DIGIT }
+name_start = @{ "_" | ASCII_ALPHA }
+decimal_digit = @{ ASCII_DIGIT }
 
 literal = _{ boolean | string_literal | numeric }
 boolean = { KEYWORD_FALSE | KEYWORD_TRUE }

@@ -4,10 +4,17 @@ version = "0.1.0"
 authors = ["Eunchong Yu <kroisse@gmail.com>"]
 edition = "2018"
 
+[features]
+deserialize = ["serde", "serde_state", "num-bigint/serde"]
+
 [dependencies]
 generational-arena = "0.2"
-naru-symbol = { path = "../naru-symbol" }
-num-bigint = { version = "0.2", features = ["serde"] }
+num-bigint = "0.2"
 num-traits = "0.2"
-serde = "1.0.91"
+serde = { version = "1.0.91", optional = true }
+serde_state = { version = "0.4", optional = true }
 smallvec = "0.6"
+string_cache = "0.7"
+
+[build-dependencies]
+string_cache_codegen = "0.4"

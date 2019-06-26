@@ -16,13 +16,18 @@
 #![deny(rust_2018_idioms)]
 #![cfg_attr(test, recursion_limit = "128")]
 
+#[macro_use]
+pub mod symbol;
+
+#[cfg(feature = "deserialize")]
+mod de;
+
 pub mod arena;
 pub mod num;
 pub mod pkg;
-pub mod symbol;
 
 pub use crate::{
     arena::{Arena, Index},
     pkg::PackagePath,
-    symbol::{symbol, Symbol},
+    symbol::Symbol,
 };
