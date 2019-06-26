@@ -1,11 +1,7 @@
-use std::fmt;
-
-use urashima_util::Symbol;
-
 #[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
-use super::{Display, ExprArena, ExprIndex, Expression};
+use super::{ExprArena, ExprIndex, Expression};
 use crate::{
     error::Fallible,
     parser::{Pairs, Parse, Rule},
@@ -14,25 +10,12 @@ use crate::{
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
-pub enum AtomicExpression {
-    False,
-    True,
-    Integral(i64),
-    Str(String),
-    Name(Symbol),
-    Record(Vec<(Symbol, ExprIndex)>),
-    Block(BlockExpression),
-    Fn {
-        parameters: Vec<Symbol>,
-        body: BlockExpression,
-    },
-}
-
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct BlockExpression {
     statements: Vec<Statement>,
     returns: ExprIndex,
+
+    #[cfg_attr(feature = "deserialize", serde(skip))]
+    __opaque: (),
 }
 
 impl BlockExpression {
@@ -50,7 +33,7 @@ impl Parse for BlockExpression {
 
     fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
         let mut statements = vec![];
-        let mut expr = AtomicExpression::Record(vec![]).into();
+        let mut expr = Expression::unit();
         for item in pairs {
             match item.as_rule() {
                 Rule::statement => {
@@ -66,18 +49,7 @@ impl Parse for BlockExpression {
         Ok(BlockExpression {
             statements,
             returns,
+            __opaque: (),
         })
-    }
-}
-
-impl<'a> fmt::Display for Display<'a, &AtomicExpression> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.value {
-            AtomicExpression::False => fmt::Display::fmt("false", f),
-            AtomicExpression::True => fmt::Display::fmt("true", f),
-            AtomicExpression::Integral(i) => fmt::Display::fmt(&i, f),
-            AtomicExpression::Str(s) => fmt::Display::fmt(&s, f),
-            _ => unimplemented!(),
-        }
     }
 }

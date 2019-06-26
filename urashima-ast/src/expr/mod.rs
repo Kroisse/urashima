@@ -1,8 +1,8 @@
 pub(crate) mod arena;
-mod atomic;
+mod block;
 mod call;
 mod control_flow;
-mod operator;
+mod function;
 
 use std::cell::RefCell;
 use std::fmt;
@@ -21,31 +21,49 @@ use crate::{
 
 pub use self::{
     arena::{Alloc, ExprArena, ExprIndex},
-    atomic::{AtomicExpression, BlockExpression},
-    call::CallExpression,
-    control_flow::ControlFlowExpression,
-    operator::OperatorExpression,
+    block::BlockExpression,
+    call::{CallExpression, InvokeExpression},
+    control_flow::{IfExpression, LoopExpression},
+    function::FunctionExpression,
 };
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
-#[cfg_attr(feature = "deserialize", serde(untagged))]
 pub enum Expression {
-    Atomic(AtomicExpression),
-    Operator(OperatorExpression),
+    // Atomic
+    False,
+    True,
+    Integral(i64),
+    Str(String),
+    Name(Symbol),
+    Record(Vec<(Symbol, ExprIndex)>),
+    Block(BlockExpression),
+    Fn(FunctionExpression),
+
+    // Operator
+    New(ExprIndex),
+    Infix(Symbol, ExprIndex, ExprIndex),
     Call(CallExpression),
-    ControlFlow(ControlFlowExpression),
+    Invoke(InvokeExpression),
+
+    // Control flow
+    If(IfExpression),
+    Loop(LoopExpression),
 }
 
-impl From<AtomicExpression> for Expression {
-    fn from(expr: AtomicExpression) -> Self {
-        Expression::Atomic(expr)
+impl Expression {
+    pub(crate) fn unit() -> Self {
+        Expression::Record(vec![])
+    }
+
+    pub(crate) fn invoke(receiver: ExprIndex, method: Symbol, arguments: Vec<ExprIndex>) -> Self {
+        Expression::Invoke(InvokeExpression::new(receiver, method, arguments))
     }
 }
 
-impl From<OperatorExpression> for Expression {
-    fn from(expr: OperatorExpression) -> Self {
-        Expression::Operator(expr)
+impl From<BlockExpression> for Expression {
+    fn from(expr: BlockExpression) -> Self {
+        Expression::Block(expr)
     }
 }
 
@@ -55,9 +73,21 @@ impl From<CallExpression> for Expression {
     }
 }
 
-impl From<ControlFlowExpression> for Expression {
-    fn from(expr: ControlFlowExpression) -> Self {
-        Expression::ControlFlow(expr)
+impl From<InvokeExpression> for Expression {
+    fn from(expr: InvokeExpression) -> Self {
+        Expression::Invoke(expr)
+    }
+}
+
+impl From<IfExpression> for Expression {
+    fn from(expr: IfExpression) -> Self {
+        Expression::If(expr)
+    }
+}
+
+impl From<LoopExpression> for Expression {
+    fn from(expr: LoopExpression) -> Self {
+        Expression::Loop(expr)
     }
 }
 
@@ -95,10 +125,19 @@ impl<'a> fmt::Display for Display<'a, &ExprIndex> {
 impl<'a> fmt::Display for Display<'a, &Expression> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.value {
-            Expression::Atomic(expr) => fmt::Display::fmt(&self.wrap(expr), f),
+            Expression::False => fmt::Display::fmt("false", f),
+            Expression::True => fmt::Display::fmt("true", f),
+            Expression::Integral(i) => fmt::Display::fmt(&i, f),
+            Expression::Str(s) => fmt::Display::fmt(&s, f),
+
+            Expression::Infix(op, a, b) => write!(f, "{} {} {}", self.wrap(*a), op, self.wrap(*b)),
+            Expression::New(expr) => write!(f, "new {}", self.wrap(*expr)),
             Expression::Call(expr) => fmt::Display::fmt(&self.wrap(expr), f),
-            Expression::Operator(expr) => fmt::Display::fmt(&self.wrap(expr), f),
-            Expression::ControlFlow(expr) => unimplemented!(),
+            Expression::Invoke(expr) => fmt::Display::fmt(&self.wrap(expr), f),
+
+            // Expression::ControlFlow(expr) => unimplemented!(),
+
+            _ => unimplemented!(),
         }
     }
 }
@@ -128,12 +167,11 @@ impl Parse for Expression {
             },
             |left, op, right| {
                 let mut arena = cell.borrow_mut();
-                Ok(OperatorExpression::Infix(
+                Ok(Expression::Infix(
                     op.as_str().into(),
                     arena.insert(left?),
                     arena.insert(right?),
-                )
-                .into())
+                ))
             },
         )
     }
@@ -143,23 +181,23 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
     let mut expr: Expression = if let Some(head) = pairs.next() {
         match head.as_rule() {
             Rule::boolean => match head.as_str() {
-                "false" => AtomicExpression::False.into(),
-                "true" => AtomicExpression::True.into(),
+                "false" => Expression::False,
+                "true" => Expression::True,
                 _ => unreachable!(),
             },
             Rule::numeric => {
                 let num = head.as_str().parse()?;
-                AtomicExpression::Integral(num).into()
+                Expression::Integral(num)
             }
             Rule::string => {
-                let text = head.as_str().into();
-                AtomicExpression::Str(text).into()
+                let text = head.as_str();
+                Expression::Str(text.to_string())
             }
             Rule::fn_expression => {
-                let (parameters, body) = parse_fn_expression(&mut *arena, head.into_inner())?;
-                AtomicExpression::Fn { parameters, body }.into()
+                let expr = FunctionExpression::from_pairs(&mut *arena, head.into_inner())?;
+                Expression::Fn(expr)
             }
-            Rule::name => AtomicExpression::Name(head.as_str().into()).into(),
+            Rule::name => Expression::Name(head.as_str().into()),
             _ => {
                 return Err(Error::unimplemented());
             }
@@ -171,36 +209,12 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
         match rest.as_rule() {
             Rule::method_call => {
                 let (method, args) = parse_method_call(&mut *arena, rest.into_inner())?;
-                expr = CallExpression::invoke(arena.insert(expr), method, args).into();
+                expr = Expression::invoke(arena.insert(expr), method, args);
             }
             _ => unreachable!("{:?}", rest),
         }
     }
     Ok(expr)
-}
-
-fn parse_fn_expression(
-    arena: &mut ExprArena,
-    pairs: Pairs<'_>,
-) -> Fallible<(Vec<Symbol>, BlockExpression)> {
-    let mut params = vec![];
-    let mut block: Option<BlockExpression> = None;
-    for item in pairs {
-        match item.as_rule() {
-            Rule::fn_param => {
-                params.push(item.as_str().into());
-            }
-            Rule::grouping_brace => {
-                if block.is_none() {
-                    block = Some(BlockExpression::from_pairs(&mut *arena, item.into_inner())?);
-                } else {
-                    unreachable!("{:?}", item);
-                }
-            }
-            _ => unreachable!("{:?}", item),
-        }
-    }
-    Ok((params, block.expect("unreachable")))
 }
 
 fn parse_method_call(
@@ -234,7 +248,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, "true").unwrap(),
-            Expression::Atomic(AtomicExpression::True) => {}
+            Expression::True => {}
         );
     }
 
@@ -243,7 +257,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, "false").unwrap(),
-            Expression::Atomic(AtomicExpression::False) => {}
+            Expression::False => {}
         );
     }
 
@@ -252,7 +266,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, "'Hello world!'").unwrap(),
-            Expression::Atomic(AtomicExpression::Str(s)) => {
+            Expression::Str(s) => {
                 assert_eq!(s, "Hello world!");
             }
         );
@@ -263,7 +277,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, r#""Hello, world!""#).unwrap(),
-            Expression::Atomic(AtomicExpression::Str(s)) => {
+            Expression::Str(s) => {
                 assert_eq!(s, "Hello, world!");
             }
         );
@@ -274,7 +288,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, "fn {}").unwrap(),
-            Expression::Atomic(AtomicExpression::Fn { parameters, body }) => {
+            Expression::Fn(FunctionExpression { parameters, body, .. }) => {
                 assert_eq!(parameters.len(), 0);
                 assert_eq!(body.statements().len(), 0);
             }
@@ -286,7 +300,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, "fn (a) { a + 1 }").unwrap(),
-            Expression::Atomic(AtomicExpression::Fn { parameters, body }) => {
+            Expression::Fn(FunctionExpression { parameters, body, .. }) => {
                 assert_eq!(parameters.len(), 1);
                 assert_eq!(parameters, vec![Symbol::from("a")]);
                 assert_eq!(body.statements().len(), 0);

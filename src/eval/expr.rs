@@ -1,6 +1,6 @@
 use urashima_ast::expr::{
-    AtomicExpression, BlockExpression, CallExpression, ControlFlowExpression, ExprIndex,
-    Expression, OperatorExpression,
+    BlockExpression, CallExpression, ExprIndex, Expression, FunctionExpression, IfExpression,
+    InvokeExpression, LoopExpression,
 };
 
 use super::Evaluate;
@@ -29,70 +29,15 @@ impl Evaluate for Expression {
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         use Expression::*;
         match self {
-            Atomic(expr) => expr.eval(ctx),
-            Operator(expr) => expr.eval(ctx),
-            Call(expr) => expr.eval(ctx),
-            ControlFlow(expr) => expr.eval(ctx),
-        }
-    }
-}
+            False => Ok(Variant::Bool(false)),
+            True => Ok(Variant::Bool(true)),
+            Integral(val) => Ok(Variant::Int((*val).into())),
+            Str(val) => Ok(Variant::from(&val[..])),
+            Name(name) => ctx.environment.lookup_name(name).map(Clone::clone),
+            Record(exprs) => eval_record(ctx, &exprs),
+            Block(blk) => blk.eval(ctx),
+            Fn(expr) => expr.eval(ctx),
 
-impl Evaluate for ControlFlowExpression {
-    type Value = Variant;
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        use ControlFlowExpression::*;
-        match self {
-            If {
-                cond,
-                then_blk,
-                else_blk,
-            } => eval_if(ctx, *cond, then_blk, else_blk.as_ref()),
-            Loop(blk) => eval_loop(ctx, blk),
-        }
-    }
-}
-
-fn eval_if(
-    ctx: &mut Capsule,
-    cond: ExprIndex,
-    then_blk: &BlockExpression,
-    else_blk: Option<&BlockExpression>,
-) -> Fallible<Variant> {
-    if let Variant::Bool(c) = cond.eval(ctx)? {
-        if c {
-            then_blk.eval(&mut ctx.push())
-        } else if let Some(e) = else_blk {
-            e.eval(&mut ctx.push())
-        } else {
-            Ok(Variant::unit())
-        }
-    } else {
-        Err(Error::invalid_type(symbol!("bool")))
-    }
-}
-
-fn eval_loop(ctx: &mut Capsule, blk: &BlockExpression) -> Fallible<Variant> {
-    loop {
-        if let Err(e) = blk.eval(ctx) {
-            match e.as_control_flow() {
-                Some(ControlFlow::Break) => break,
-                Some(ControlFlow::Continue) => continue,
-                None => {
-                    return Err(e);
-                }
-            }
-        }
-    }
-    Ok(Variant::unit())
-}
-
-impl Evaluate for OperatorExpression {
-    type Value = Variant;
-
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        use OperatorExpression::*;
-        match self {
             Infix(op, a, b) => {
                 let a = a.eval(ctx)?;
                 let b = b.eval(ctx)?;
@@ -108,7 +53,48 @@ impl Evaluate for OperatorExpression {
                 let val = expr.eval(ctx)?;
                 Ok(Variant::Ref(ctx.environment.boxed(val)))
             }
+            Call(expr) => expr.eval(ctx),
+            Invoke(expr) => expr.eval(ctx),
+            If(expr) => expr.eval(ctx),
+            Loop(expr) => expr.eval(ctx),
         }
+    }
+}
+
+impl Evaluate for IfExpression {
+    type Value = Variant;
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        if let Variant::Bool(c) = self.cond.eval(ctx)? {
+            if c {
+                self.then_blk.eval(&mut ctx.push())
+            } else if let Some(e) = &self.else_blk {
+                e.eval(&mut ctx.push())
+            } else {
+                Ok(Variant::unit())
+            }
+        } else {
+            Err(Error::invalid_type(symbol!("bool")))
+        }
+    }
+}
+
+impl Evaluate for LoopExpression {
+    type Value = Variant;
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        loop {
+            if let Err(e) = self.blk.eval(ctx) {
+                match e.as_control_flow() {
+                    Some(ControlFlow::Break) => break,
+                    Some(ControlFlow::Continue) => continue,
+                    None => {
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        Ok(Variant::unit())
     }
 }
 
@@ -116,60 +102,26 @@ impl Evaluate for CallExpression {
     type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        use CallExpression::*;
-        match self {
-            FunctionCall { callee, arguments } => eval_fn_call(ctx, &callee, &arguments),
-            MethodInvocation {
-                receiver,
-                method,
-                arguments,
-            } => eval_invoke(ctx, &receiver, &method, &arguments),
-        }
+        let callee = self.callee.eval(ctx)?;
+        let f = callee
+            .as_function(&ctx)
+            .ok_or_else(|| Error::invalid_type(symbol!("fn")))?
+            .clone();
+        f.call(ctx, &self.arguments)
     }
 }
 
-fn eval_fn_call(
-    ctx: &mut Capsule,
-    callee: &ExprIndex,
-    arguments: &[ExprIndex],
-) -> Fallible<Variant> {
-    let callee = callee.eval(ctx)?;
-    let f = callee
-        .as_function(&ctx)
-        .ok_or_else(|| Error::invalid_type(symbol!("fn")))?
-        .clone();
-    f.call(ctx, arguments)
-}
-
-fn eval_invoke(
-    ctx: &mut Capsule,
-    receiver: &ExprIndex,
-    method: &Symbol,
-    arguments: &[ExprIndex],
-) -> Fallible<Variant> {
-    let receiver = receiver.eval(ctx)?;
-    let arguments = arguments
-        .iter()
-        .map(|i| i.eval(ctx))
-        .collect::<Fallible<Vec<_>>>()?;
-    receiver.invoke(ctx, method.clone(), &arguments)
-}
-
-impl<'arena> Evaluate for AtomicExpression {
+impl Evaluate for InvokeExpression {
     type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        use AtomicExpression::*;
-        match self {
-            False => Ok(Variant::Bool(false)),
-            True => Ok(Variant::Bool(true)),
-            Integral(val) => Ok(Variant::Int((*val).into())),
-            Str(val) => Ok(Variant::from(&val[..])),
-            Name(name) => ctx.environment.lookup_name(name).map(Clone::clone),
-            Record(exprs) => eval_record(ctx, &exprs),
-            Block(blk) => blk.eval(ctx),
-            Fn { parameters, body } => expr_fn(ctx, parameters, body),
-        }
+        let receiver = self.receiver.eval(ctx)?;
+        let arguments = self
+            .arguments
+            .iter()
+            .map(|i| i.eval(ctx))
+            .collect::<Fallible<Vec<_>>>()?;
+        receiver.invoke(ctx, self.method.clone(), &arguments)
     }
 }
 
@@ -205,10 +157,14 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Symbol, ExprIndex)]) -> Fallible<Var
     Ok(Variant::Record(items.into_iter().collect()))
 }
 
-fn expr_fn(ctx: &mut Capsule, parameters: &[Symbol], body: &BlockExpression) -> Fallible<Variant> {
-    let f = Function::new(ctx, parameters.to_vec(), body.clone());
-    let idx = ctx.environment.add_function(f);
-    Ok(Variant::Fn(idx))
+impl Evaluate for FunctionExpression {
+    type Value = Variant;
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        let f = Function::new(ctx, self.parameters.to_vec(), self.body.clone());
+        let idx = ctx.environment.add_function(f);
+        Ok(Variant::Fn(idx))
+    }
 }
 
 #[cfg(all(feature = "deserialize", test))]
@@ -276,7 +232,7 @@ mod test_expr_atomic {
         assert_eq!(capsule.environment.values.len(), 1);
 
         let code = json!({
-            "FunctionCall": {
+            "Call": {
                 "callee": {"Name": "answer_to_the_ultimate_question_of_life_the_universe_and_everything"},
                 "arguments": [],
             },
@@ -300,7 +256,7 @@ mod test_expr_atomic {
                     "parameters": ["n"],
                     "body": {
                         "statements": [],
-                        "returns": {"infix": [
+                        "returns": {"Infix": [
                             "+",
                             {"Name": "n"},
                             {"Integral": 1},
@@ -340,7 +296,7 @@ mod test_expr_atomic {
                         "parameters": ["n"],
                         "body": {
                             "statements": [],
-                            "returns": {"infix": [
+                            "returns": {"Infix": [
                                 "+",
                                 {"Name": "n"},
                                 {"Name": "ANSWER"},
@@ -423,7 +379,7 @@ mod test_expr_op {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
         let expr: ExprIndex = capsule.parse(json!({
-            "infix": [
+            "Infix": [
                 "+",
                 {"Integral": 1},
                 {"Integral": 2},
@@ -439,7 +395,7 @@ mod test_expr_op {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
         let expr: ExprIndex = capsule.parse(json!({
-            "infix": [
+            "Infix": [
                 "-",
                 {"Integral": 1},
                 {"Integral": 2},

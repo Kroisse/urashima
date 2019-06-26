@@ -5,7 +5,7 @@ use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     error::Fallible,
-    expr::{AtomicExpression, ExprArena, Expression},
+    expr::{ExprArena, Expression},
     parser::{ensure_single, Pairs, Parse, Rule},
     program::{Binding, PackageDep},
 };
@@ -34,7 +34,7 @@ impl Parse for Statement {
                 let expr = if let Some(ret) = item.into_inner().next() {
                     Expression::from_pair(&mut *arena, ret)?
                 } else {
-                    AtomicExpression::Record(vec![]).into()
+                    Expression::unit()
                 };
                 Ok(Statement::Return(expr))
             }
@@ -54,7 +54,7 @@ impl Parse for Statement {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::expr::{AtomicExpression, CallExpression, ExprArena};
+    use crate::expr::{InvokeExpression, ExprArena};
 
     #[test]
     fn break_simple() {
@@ -79,7 +79,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "return\n").unwrap(),
-            Statement::Return(Expression::Atomic(AtomicExpression::Record(rec))) => { assert_eq!(rec.len(), 0); }
+            Statement::Return(Expression::Record(rec)) => { assert_eq!(rec.len(), 0); }
         );
     }
 
@@ -88,7 +88,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "return 42\n").unwrap(),
-            Statement::Return(Expression::Atomic(AtomicExpression::Integral(42))) => { }
+            Statement::Return(Expression::Integral(42)) => { }
         );
     }
 
@@ -97,7 +97,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "foo := 42\n").unwrap(),
-            Statement::Binding(name, Expression::Atomic(AtomicExpression::Integral(42))) => {
+            Statement::Binding(name, Expression::Integral(42)) => {
                 assert_eq!(&name, "foo");
             }
         );
@@ -111,7 +111,7 @@ mod test {
                 "Hello, world!" println()
             }
             "#).unwrap(),
-            Statement::Binding(name, Expression::Atomic(AtomicExpression::Fn { .. })) => {
+            Statement::Binding(name, Expression::Fn(_)) => {
                 assert_eq!(&name, "hello");
             }
         );
@@ -122,7 +122,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "42 println()\n").unwrap(),
-            Statement::Expr(Expression::Call(CallExpression::MethodInvocation { method, .. })) => {
+            Statement::Expr(Expression::Invoke(InvokeExpression { method, .. })) => {
                 assert_eq!(&method, "println");
             }
         );

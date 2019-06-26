@@ -200,7 +200,7 @@ bar := 3 println()
         );
         let expr = &parse_result.bindings[0].value;
         match expr {
-            Expression::Operator(_) => {}
+            Expression::Infix(..) => {}
             _ => {
                 panic!("{:?}", expr);
             }
