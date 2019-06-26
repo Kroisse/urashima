@@ -8,6 +8,7 @@ use crate::{
     error::Fallible,
     expr::{Alloc, ExprArena, Expression},
     parser::{Pairs, Parse, Rule},
+    print::{self, Print},
     statement::Statement,
 };
 
@@ -30,6 +31,7 @@ pub struct PackageDep {
     pub imports: Vec<Symbol>,
 }
 
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct Binding {
     pub name: Symbol,
@@ -158,10 +160,17 @@ impl Parse for ScriptProgram {
     }
 }
 
+impl Print for Binding {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
+        write!(f, "{} := ", self.name)?;
+        Print::fmt(&self.value, f)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::expr::{Display, Expression};
+    use crate::{expr::Expression, print::Print};
 
     #[test]
     fn basic() {
@@ -173,11 +182,14 @@ use naru core (bool, int, nat)
 
 foo := 1 + 2  -- this is commment :)
 bar := 3 println()
+baz := fn {
+    42
+}
 "#,
         )
         .unwrap();
         for b in &parse_result.bindings {
-            println!("{} := {}", b.name, Display::new(&arena, &b.value));
+            println!("{}", b.display(&arena));
         }
         assert_eq!(
             parse_result.uses,
@@ -196,7 +208,7 @@ bar := 3 println()
                 .iter()
                 .map(|b| &*b.name)
                 .collect::<Vec<_>>(),
-            vec!["foo", "bar"],
+            vec!["foo", "bar", "baz"],
         );
         let expr = &parse_result.bindings[0].value;
         match expr {

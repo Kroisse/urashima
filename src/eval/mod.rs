@@ -1,7 +1,7 @@
 mod expr;
 
 use urashima_ast::{
-    program::{PackageDep, PackageProgram, ScriptProgram},
+    program::{Binding, PackageDep, PackageProgram, ScriptProgram},
     statement::Statement,
 };
 
@@ -46,6 +46,16 @@ impl Evaluate for PackageDep {
     }
 }
 
+impl Evaluate for Binding {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+        let val = self.value.eval(ctx)?;
+        ctx.bind(&self.name, val);
+        Ok(())
+    }
+}
+
 impl Evaluate for ScriptProgram {
     type Value = ();
 
@@ -62,11 +72,7 @@ impl Evaluate for Statement {
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
         match self {
-            Statement::Binding(name, expr) => {
-                let val = expr.eval(ctx)?;
-                ctx.bind(name, val);
-                Ok(())
-            }
+            Statement::Binding(b) => b.eval(ctx),
             Statement::Expr(expr) => {
                 expr.eval(ctx)?;
                 Ok(())

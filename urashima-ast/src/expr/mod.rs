@@ -5,7 +5,6 @@ mod control_flow;
 mod function;
 
 use std::cell::RefCell;
-use std::fmt;
 
 use lazy_static::lazy_static;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
@@ -17,6 +16,7 @@ use serde_derive_urashima::DeserializeSeed;
 use crate::{
     error::{Error, Fallible},
     parser::{Pairs, Parse, Rule},
+    print::{self, Print},
 };
 
 pub use self::{
@@ -24,7 +24,7 @@ pub use self::{
     block::BlockExpression,
     call::{CallExpression, InvokeExpression},
     control_flow::{IfExpression, LoopExpression},
-    function::FunctionExpression,
+    function::{FunctionExpression, Parameter},
 };
 
 #[derive(Clone, Debug)]
@@ -59,6 +59,14 @@ impl Expression {
     pub(crate) fn invoke(receiver: ExprIndex, method: Symbol, arguments: Vec<ExprIndex>) -> Self {
         Expression::Invoke(InvokeExpression::new(receiver, method, arguments))
     }
+
+    pub(crate) fn is_unit(&self) -> bool {
+        if let Expression::Record(fields) = self {
+            fields.is_empty()
+        } else {
+            false
+        }
+    }
 }
 
 impl From<BlockExpression> for Expression {
@@ -91,51 +99,21 @@ impl From<LoopExpression> for Expression {
     }
 }
 
-pub(crate) struct Display<'a, T> {
-    arena: &'a ExprArena,
-    value: T,
-}
+impl<'a> Print for Expression {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
+        use Expression::*;
+        match self {
+            False => f.write_str("false"),
+            True => f.write_str("true"),
+            Integral(i) => write!(f, "{}", i),
+            Str(s) => write!(f, "{}", s),
+            Block(expr) => Print::fmt(expr, f),
+            Fn(expr) => Print::fmt(expr, f),
 
-impl<'a, T> Display<'a, T> {
-    pub(crate) fn new(arena: &'a ExprArena, value: T) -> Self {
-        Display { arena, value }
-    }
-
-    fn wrap<U>(&self, other: U) -> Display<'a, U> {
-        Display {
-            arena: self.arena,
-            value: other,
-        }
-    }
-}
-
-impl<'a> fmt::Display for Display<'a, ExprIndex> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let expr = &self.arena[self.value];
-        fmt::Display::fmt(&self.wrap(expr), f)
-    }
-}
-
-impl<'a> fmt::Display for Display<'a, &ExprIndex> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.wrap(*self.value), f)
-    }
-}
-
-impl<'a> fmt::Display for Display<'a, &Expression> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.value {
-            Expression::False => fmt::Display::fmt("false", f),
-            Expression::True => fmt::Display::fmt("true", f),
-            Expression::Integral(i) => fmt::Display::fmt(&i, f),
-            Expression::Str(s) => fmt::Display::fmt(&s, f),
-
-            Expression::Infix(op, a, b) => write!(f, "{} {} {}", self.wrap(*a), op, self.wrap(*b)),
-            Expression::New(expr) => write!(f, "new {}", self.wrap(*expr)),
-            Expression::Call(expr) => fmt::Display::fmt(&self.wrap(expr), f),
-            Expression::Invoke(expr) => fmt::Display::fmt(&self.wrap(expr), f),
-
-            // Expression::ControlFlow(expr) => unimplemented!(),
+            Infix(op, a, b) => write!(f, "{} {} {}", f.display(a), op, f.display(b)),
+            New(expr) => write!(f, "new {}", f.display(expr)),
+            Call(expr) => Print::fmt(expr, f),
+            Invoke(expr) => Print::fmt(expr, f),
 
             _ => unimplemented!(),
         }
@@ -192,6 +170,10 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
             Rule::string => {
                 let text = head.as_str();
                 Expression::Str(text.to_string())
+            }
+            Rule::grouping_brace => {
+                let expr = BlockExpression::from_pairs(&mut *arena, head.into_inner())?;
+                Expression::Block(expr)
             }
             Rule::fn_expression => {
                 let expr = FunctionExpression::from_pairs(&mut *arena, head.into_inner())?;
@@ -302,7 +284,7 @@ mod test {
             Expression::from_str(&mut arena, "fn (a) { a + 1 }").unwrap(),
             Expression::Fn(FunctionExpression { parameters, body, .. }) => {
                 assert_eq!(parameters.len(), 1);
-                assert_eq!(parameters, vec![Symbol::from("a")]);
+                assert_eq!(parameters, vec![Parameter::from("a")]);
                 assert_eq!(body.statements().len(), 0);
             }
         );

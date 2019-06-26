@@ -5,6 +5,7 @@ use super::{ExprArena, ExprIndex, Expression};
 use crate::{
     error::Fallible,
     parser::{Pairs, Parse, Rule},
+    print::{self, Print},
     statement::Statement,
 };
 
@@ -51,5 +52,26 @@ impl Parse for BlockExpression {
             returns,
             __opaque: (),
         })
+    }
+}
+
+impl Print for BlockExpression {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
+        f.write_str("{")?;
+        f.indent(|f| {
+            f.next_line()?;
+            for stmt in self.statements() {
+                Print::fmt(stmt, f)?;
+                f.next_line()?;
+            }
+            let expr = f.get(self.returns())?;
+            if !expr.is_unit() {
+                Print::fmt(expr, f)?;
+                f.next_line()?;
+            }
+            Ok(())
+        })?;
+        f.write_str("}")?;
+        Ok(())
     }
 }

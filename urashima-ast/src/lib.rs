@@ -21,6 +21,7 @@
 mod testutils;
 
 mod parser;
+mod print;
 
 pub mod error;
 pub mod expr;

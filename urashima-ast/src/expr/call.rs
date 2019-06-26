@@ -1,11 +1,10 @@
-use std::fmt;
-
 use urashima_util::Symbol;
 
 #[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
-use super::{Display, ExprIndex};
+use super::ExprIndex;
+use crate::print::{self, Print};
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
@@ -41,40 +40,25 @@ impl InvokeExpression {
     }
 }
 
-impl<'a> fmt::Display for Display<'a, &CallExpression> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Print for CallExpression {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
         write!(
             f,
             "{}({})",
-            &self.wrap(self.value.callee),
-            &self.wrap(&self.value.arguments[..])
+            f.display(&self.callee),
+            f.display_seq(&self.arguments[..], ", "),
         )
     }
 }
 
-impl<'a> fmt::Display for Display<'a, &InvokeExpression> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Print for InvokeExpression {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
         write!(
             f,
             "{} {}({})",
-            &self.wrap(self.value.receiver),
-            self.value.method,
-            &self.wrap(&self.value.arguments[..])
+            f.display(&self.receiver),
+            self.method,
+            f.display_seq(&self.arguments[..], ", "),
         )
-    }
-}
-
-impl<'a> fmt::Display for Display<'a, &[ExprIndex]> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut first = true;
-        for arg in self.value {
-            if first {
-                first = false;
-            } else {
-                fmt::Display::fmt(", ", f)?;
-            }
-            fmt::Display::fmt(&self.wrap(*arg), f)?;
-        }
-        Ok(())
     }
 }

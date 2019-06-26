@@ -37,17 +37,25 @@ expression = { operator_expression | operand_expression }
 operator_expression = _{ operand_expression ~ (operator ~ operand_expression)* }
 operand_expression = { atomic_expression ~ method_call* }
 method_call = { name ~ grouping_paren_open ~ (expression ~ (COMMA ~ expression)* ~ COMMA?)? ~ grouping_paren_close }
-atomic_expression = _{ grouping_paren | fn_expression | literal | name }
+atomic_expression = _{ grouping_paren | grouping_brace | fn_expression | if_expression | literal | name }
 
 fn_expression = { KEYWORD_FN ~ fn_parameters? ~ grouping_brace }
 fn_parameters = _{ grouping_paren_open ~ (fn_param ~ (COMMA ~ fn_param)* ~ COMMA?)? ~ grouping_paren_close }
 fn_param = { name }
 
 grouping_paren = { grouping_paren_open ~ expression ~ grouping_paren_close }
-grouping_brace = { "{" ~ separator? ~ statement* ~ (expression ~ separator?)? ~ "}" }
+grouping_brace = {
+	grouping_brace_open ~
+	separator? ~
+	statement* ~
+	(expression ~ separator?)? ~
+	grouping_brace_close
+}
 
 grouping_paren_open  = _{ "(" }
 grouping_paren_close = _{ ")" }
+grouping_brace_open  = _{ "{" }
+grouping_brace_close = _{ "}" }
 
 name = @{ quoted_name | !KEYWORD ~ IDENTIFIER }
 quoted_name = { QUOTE ~ IDENTIFIER ~ QUOTE }

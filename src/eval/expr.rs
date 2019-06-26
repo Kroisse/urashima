@@ -161,7 +161,11 @@ impl Evaluate for FunctionExpression {
     type Value = Variant;
 
     fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
-        let f = Function::new(ctx, self.parameters.to_vec(), self.body.clone());
+        let f = Function::new(
+            ctx,
+            self.parameters.iter().map(|i| i.name()).collect(),
+            self.body.clone(),
+        );
         let idx = ctx.environment.add_function(f);
         Ok(Variant::Fn(idx))
     }

@@ -1,5 +1,3 @@
-use urashima_util::Symbol;
-
 #[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
@@ -7,19 +5,19 @@ use crate::{
     error::Fallible,
     expr::{ExprArena, Expression},
     parser::{ensure_single, Pairs, Parse, Rule},
+    print::{self, Print},
     program::{Binding, PackageDep},
 };
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub enum Statement {
-    Binding(Symbol, Expression),
+    Binding(Binding),
     Expr(Expression),
     Return(Expression),
     Break,
     Continue,
     Use(PackageDep),
-    Print(Expression), // for debug only
 }
 
 impl Parse for Statement {
@@ -40,7 +38,7 @@ impl Parse for Statement {
             }
             Rule::binding_statement => {
                 let binding = Binding::from_pairs(&mut *arena, item.into_inner())?;
-                Ok(Statement::Binding(binding.name, binding.value))
+                Ok(Statement::Binding(binding))
             }
             Rule::expression => Ok(Statement::Expr(Expression::from_pairs(
                 &mut *arena,
@@ -51,10 +49,24 @@ impl Parse for Statement {
     }
 }
 
+impl Print for Statement {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
+        use Statement::*;
+        match self {
+            Binding(b) => Print::fmt(b, f),
+            Expr(expr) => Print::fmt(expr, f),
+            Return(expr) => write!(f, "return {}", f.display(expr)),
+            Break => f.write_str("break"),
+            Continue => f.write_str("continue"),
+            Use(..) => unimplemented!(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::expr::{InvokeExpression, ExprArena};
+    use crate::expr::{ExprArena, InvokeExpression};
 
     #[test]
     fn break_simple() {
@@ -97,7 +109,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "foo := 42\n").unwrap(),
-            Statement::Binding(name, Expression::Integral(42)) => {
+            Statement::Binding(Binding { name, value: Expression::Integral(42) }) => {
                 assert_eq!(&name, "foo");
             }
         );
@@ -111,7 +123,7 @@ mod test {
                 "Hello, world!" println()
             }
             "#).unwrap(),
-            Statement::Binding(name, Expression::Fn(_)) => {
+            Statement::Binding(Binding { name, value: Expression::Fn(_) }) => {
                 assert_eq!(&name, "hello");
             }
         );
