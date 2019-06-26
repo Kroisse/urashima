@@ -27,4 +27,7 @@ pub mod expr;
 pub mod program;
 pub mod statement;
 
-pub use crate::parser::{parse, Parse};
+pub use crate::{
+    parser::{parse, Parse},
+    print::Print,
+};

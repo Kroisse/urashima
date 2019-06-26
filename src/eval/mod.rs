@@ -85,25 +85,55 @@ impl Evaluate for Statement {
     }
 }
 
-#[cfg(all(feature = "deserialize", test))]
+#[cfg(test)]
 mod test_stmt {
-    use failure::Fallible;
+    use std::io;
+
+    use urashima_ast::Print;
+
+    #[cfg(feature = "deserialize")]
     use serde_json::json;
 
     use super::*;
     use crate::runtime::Runtime;
 
     #[test]
-    fn eval_bind_literal() -> Fallible<()> {
+    #[ignore]
+    fn closure() {
+        let s = r#"
+x := 42
+f := fn {
+    x println() -- 이 x는 위의 x를 가리킨다.
+}
+x := "foo" -- 위의 x 바인딩을 가린다.
+x println() --> foo
+f() -- 하지만 이 호출은 여전히 42를 출력한다.
+        "#;
+        let rt = Runtime::new();
+        let mut out = Vec::new();
+        {
+            let w = Box::new(io::Cursor::new(&mut out));
+            let mut capsule = Capsule::new(rt.context(), w);
+            let prog: ScriptProgram = capsule.parse_sourcecode(&s).unwrap();
+            println!("{}", prog.display(&capsule.expr_arena));
+            capsule.eval(&prog).unwrap();
+        }
+        assert_eq!(std::str::from_utf8(&out).unwrap(), "foo\n42\n");
+    }
+
+    #[cfg(feature = "deserialize")]
+    #[test]
+    fn eval_bind_literal() {
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
-        let stmt: Statement = capsule.parse(json!({
-            "Binding": ["foo", {"Integral": 42}],
-        }))?;
-        capsule.eval(&stmt)?;
+        let stmt: Statement = capsule
+            .parse(json!({
+                "Binding": ["foo", {"Integral": 42}],
+            }))
+            .unwrap();
+        capsule.eval(&stmt).unwrap();
         let env = capsule.environment;
         assert_eq!(env.values[0].to_int(), Some(&42.into()));
         assert_eq!(&env.names[0], "foo");
-        Ok(())
     }
 }

@@ -87,3 +87,22 @@ impl<'a> Print for Parameter {
         f.write_str(&self.0)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{parse, program::ScriptProgram};
+
+    #[test]
+    fn inverse() {
+        let s = r#"f := fn {
+    x println()
+}
+f()
+"#;
+        let mut arena = ExprArena::new();
+        let prog: ScriptProgram = parse(&mut arena, &s).unwrap();
+        let printed = prog.display(&arena).to_string();
+        assert_eq!(s, printed);
+    }
+}

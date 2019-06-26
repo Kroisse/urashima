@@ -28,7 +28,7 @@ impl Environment {
         let i = self
             .names
             .iter()
-            .position(|n| n == name)
+            .rposition(|n| n == name)
             .ok_or_else(|| Error::name(name))?;
         Ok(&self.values[i])
     }

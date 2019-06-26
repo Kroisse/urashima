@@ -165,6 +165,16 @@ impl Print for Binding {
     }
 }
 
+impl Print for ScriptProgram {
+    fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
+        for stmt in &self.statements {
+            Print::fmt(stmt, f)?;
+            f.next_line()?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

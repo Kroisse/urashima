@@ -100,3 +100,20 @@ mod de {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::parse;
+
+    #[test]
+    fn inverse() {
+        let s = r#"{
+    x println()
+}"#;
+        let mut arena = ExprArena::new();
+        let prog: BlockExpression = parse(&mut arena, &s).unwrap();
+        let printed = prog.display(&arena).to_string();
+        assert_eq!(s, printed);
+    }
+}

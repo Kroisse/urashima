@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
 
 use crate::expr::{ExprArena, ExprIndex, Expression};
 
@@ -8,39 +10,38 @@ pub type Result<T = ()> = std::result::Result<T, Error>;
 
 pub struct Formatter<'a> {
     inner: &'a mut fmt::Formatter<'a>,
-    state: State<'a>,
+    arena: &'a ExprArena,
+    state: Rc<RefCell<State>>,
 }
 
-#[derive(Clone)]
-struct State<'a> {
-    arena: &'a ExprArena,
+struct State {
     start: bool,
     indent: u16,
 }
 
 impl<'a> Formatter<'a> {
-    fn new<'b: 'a>(f: &'a mut fmt::Formatter<'b>, arena: &'a ExprArena) -> Self {
-        let state = State {
-            arena,
-            start: true,
-            indent: 0,
-        };
-        Formatter::with_state(f, state)
-    }
-
-    fn with_state<'b: 'a>(f: &'a mut fmt::Formatter<'b>, state: State<'a>) -> Self {
+    fn new<'b: 'a>(
+        f: &'a mut fmt::Formatter<'b>,
+        arena: &'a ExprArena,
+        state: Rc<RefCell<State>>,
+    ) -> Self {
         let inner = unsafe {
             std::mem::transmute::<&'a mut fmt::Formatter<'b>, &'a mut fmt::Formatter<'a>>(f)
         };
-        Formatter { inner, state }
+        Formatter {
+            inner,
+            arena,
+            state,
+        }
     }
 
     fn write_indent(&mut self) -> Result {
-        if self.state.start {
-            for _ in 0..self.state.indent {
+        let mut st = self.state.borrow_mut();
+        if st.start {
+            st.start = false;
+            for _ in dbg!(0..st.indent) {
                 self.inner.write_str("    ")?;
             }
-            self.state.start = false;
         }
         Ok(())
     }
@@ -51,26 +52,24 @@ impl<'a> Formatter<'a> {
     }
 
     pub fn write_str(&mut self, data: &str) -> Result {
-        self.write_indent()?;
         self.inner.write_str(data)
     }
 
     pub fn next_line(&mut self) -> Result {
         self.inner.write_char('\n')?;
-        self.state.start = true;
+        self.state.borrow_mut().start = true;
         Ok(())
     }
 
     pub fn indent(&mut self, blk: impl FnOnce(&mut Formatter<'a>) -> Result) -> Result {
-        let prev = self.state.clone();
-        self.state.indent += 1;
+        self.state.borrow_mut().indent += 1;
         let ret = blk(self);
-        self.state = prev;
+        self.state.borrow_mut().indent -= 1;
         ret
     }
 
     pub fn get(&self, idx: ExprIndex) -> Result<&'a Expression> {
-        self.state.arena.get(idx).ok_or(Error)
+        self.arena.get(idx).ok_or(Error)
     }
 
     pub fn display<'t, T>(&self, data: &'t T) -> Display<'a, &'t T>
@@ -79,7 +78,8 @@ impl<'a> Formatter<'a> {
     {
         Display {
             data,
-            state: self.state.clone(),
+            arena: self.arena,
+            state: Rc::clone(&self.state),
         }
     }
 
@@ -93,7 +93,8 @@ impl<'a> Formatter<'a> {
     {
         Display {
             data: Sequence::new(data, separator),
-            state: self.state.clone(),
+            arena: self.arena,
+            state: Rc::clone(&self.state),
         }
     }
 }
@@ -102,12 +103,15 @@ pub trait Print {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> Result;
 
     fn display<'a, 'b>(&'a self, arena: &'b ExprArena) -> Display<'b, &'a Self> {
-        let state = State {
-            arena,
+        let state = Rc::new(RefCell::new(State {
             start: true,
             indent: 0,
-        };
-        Display { data: self, state }
+        }));
+        Display {
+            data: self,
+            arena,
+            state,
+        }
     }
 }
 
@@ -122,7 +126,8 @@ where
 
 pub struct Display<'a, T> {
     data: T,
-    state: State<'a>,
+    arena: &'a ExprArena,
+    state: Rc<RefCell<State>>,
 }
 
 impl<'a, T> fmt::Display for Display<'a, T>
@@ -130,7 +135,7 @@ where
     T: Print,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = Formatter::with_state(f, self.state.clone());
+        let mut f = Formatter::new(f, self.arena, Rc::clone(&self.state));
         Print::fmt(&self.data, &mut f)
     }
 }
