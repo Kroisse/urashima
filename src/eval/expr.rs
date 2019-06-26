@@ -13,7 +13,7 @@ use crate::{
 impl Evaluate for ExprIndex {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let expr = ctx
             .expr_arena
             .get(*self)
@@ -26,7 +26,7 @@ impl Evaluate for ExprIndex {
 impl Evaluate for Expression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         use Expression::*;
         match self {
             False => Ok(Variant::Bool(false)),
@@ -64,7 +64,7 @@ impl Evaluate for Expression {
 impl Evaluate for IfExpression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         if let Variant::Bool(c) = self.cond.eval(ctx)? {
             if c {
                 self.then_blk.eval(&mut ctx.push())
@@ -82,7 +82,7 @@ impl Evaluate for IfExpression {
 impl Evaluate for LoopExpression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         loop {
             if let Err(e) = self.blk.eval(ctx) {
                 match e.as_control_flow() {
@@ -101,7 +101,7 @@ impl Evaluate for LoopExpression {
 impl Evaluate for CallExpression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let callee = self.callee.eval(ctx)?;
         let f = callee
             .as_function(&ctx)
@@ -114,7 +114,7 @@ impl Evaluate for CallExpression {
 impl Evaluate for InvokeExpression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let receiver = self.receiver.eval(ctx)?;
         let arguments = self
             .arguments
@@ -128,20 +128,20 @@ impl Evaluate for InvokeExpression {
 impl Evaluate for BlockExpression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let mut g = ctx.push();
         eval_in_context(self, &mut g)
     }
 }
 
-pub(crate) fn eval_in_context(expr: &BlockExpression, ctx: &mut Capsule) -> Fallible<Variant> {
+pub(crate) fn eval_in_context(expr: &BlockExpression, ctx: &mut Capsule<'_>) -> Fallible<Variant> {
     for stmt in expr.statements() {
         stmt.eval(ctx)?;
     }
     expr.returns().eval(ctx)
 }
 
-fn eval_record(ctx: &mut Capsule, exprs: &[(Symbol, ExprIndex)]) -> Fallible<Variant> {
+fn eval_record(ctx: &mut Capsule<'_>, exprs: &[(Symbol, ExprIndex)]) -> Fallible<Variant> {
     let mut items = Vec::new();
     let mut keys = Vec::new();
     for (key, expr) in exprs {
@@ -160,7 +160,7 @@ fn eval_record(ctx: &mut Capsule, exprs: &[(Symbol, ExprIndex)]) -> Fallible<Var
 impl Evaluate for FunctionExpression {
     type Value = Variant;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let f = Function::new(
             ctx,
             self.parameters.iter().map(|i| i.name()).collect(),

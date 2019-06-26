@@ -41,15 +41,19 @@ impl Runtime {
         }
     }
 
-    pub fn root_capsule(&self) -> Capsule {
-        Capsule::root(Arc::clone(&self.inner))
+    pub(crate) fn context(&self) -> RuntimeContextRef {
+        Arc::clone(&self.inner)
+    }
+
+    pub fn root_capsule(&self) -> Capsule<'static> {
+        Capsule::root(self.context())
     }
 
     pub fn execute(&self, path: impl AsRef<Path>) -> Fallible<()> {
         let path = path.as_ref();
         let input = std::fs::read_to_string(path).map_err(|_| Error::load(path))?;
         let mut capsule = self.root_capsule();
-        let prog: ScriptProgram = parse(&mut capsule.expr_arena, &input)?;
+        let prog: ScriptProgram = capsule.parse_sourcecode(&input)?;
         prog.eval(&mut capsule)?;
         Ok(())
     }
@@ -57,15 +61,22 @@ impl Runtime {
 
 #[cfg(test)]
 mod test {
+    use std::io;
+
     use super::*;
 
     #[test]
     fn helloworld() {
         let s = include_str!("../tests/helloworld.n");
         let rt = Runtime::new();
-        let mut capsule = rt.root_capsule();
-        let prog: ScriptProgram = parse(&mut capsule.expr_arena, &s).unwrap();
-        capsule.eval(&prog).unwrap();
+        let mut out = Vec::new();
+        {
+            let w = Box::new(io::Cursor::new(&mut out));
+            let mut capsule = Capsule::new(rt.context(), w);
+            let prog: ScriptProgram = capsule.parse_sourcecode(&s).unwrap();
+            capsule.eval(&prog).unwrap();
+        }
+        assert_eq!(std::str::from_utf8(&out).unwrap(), "Hello, world!\n");
     }
 
     #[cfg(feature = "deserialize")]
@@ -74,8 +85,13 @@ mod test {
         let s = include_bytes!("../tests/helloworld.yaml");
         let prog: serde_yaml::Value = serde_yaml::from_slice(&*s).unwrap();
         let rt = Runtime::new();
-        let mut capsule = rt.root_capsule();
-        let prog: ScriptProgram = capsule.parse(prog).unwrap();
-        capsule.eval(&prog).unwrap();
+        let mut out = Vec::new();
+        {
+            let w = Box::new(io::Cursor::new(&mut out));
+            let mut capsule = Capsule::new(rt.context(), w);
+            let prog: ScriptProgram = capsule.parse(prog).unwrap();
+            capsule.eval(&prog).unwrap();
+        }
+        assert_eq!(std::str::from_utf8(&out).unwrap(), "Hello, world!\n");
     }
 }

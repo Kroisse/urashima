@@ -14,11 +14,11 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(_ctx: &mut Capsule, parameters: Vec<Symbol>, body: BlockExpression) -> Self {
+    pub fn new(_ctx: &mut Capsule<'_>, parameters: Vec<Symbol>, body: BlockExpression) -> Self {
         Function { parameters, body }
     }
 
-    pub fn call(&self, ctx: &mut Capsule, arguments: &[ExprIndex]) -> Fallible<Variant> {
+    pub fn call(&self, ctx: &mut Capsule<'_>, arguments: &[ExprIndex]) -> Fallible<Variant> {
         let Function { parameters, body } = self;
         let args: Vec<_> = arguments
             .iter()

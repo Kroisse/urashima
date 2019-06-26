@@ -14,22 +14,30 @@ use crate::{
     runtime::RuntimeContextRef,
 };
 
-pub struct Capsule {
+pub struct Capsule<'a> {
     pub(crate) ctx: RuntimeContextRef,
     pub(crate) environment: Environment,
     pub(crate) expr_arena: ExprArena,
+    pub(crate) stdout: Box<dyn Write + 'a>,
 }
 
-impl Capsule {
-    pub(crate) fn root(ctx: RuntimeContextRef) -> Capsule {
+impl Capsule<'static> {
+    pub(crate) fn root(ctx: RuntimeContextRef) -> Self {
+        Capsule::new(ctx, Box::new(std::io::stdout()))
+    }
+}
+
+impl<'a> Capsule<'a> {
+    pub(crate) fn new(ctx: RuntimeContextRef, stdout: Box<dyn Write + 'a>) -> Self {
         Capsule {
             ctx,
             environment: Default::default(),
             expr_arena: ExprArena::new(),
+            stdout,
         }
     }
 
-    pub(crate) fn parse_sourcecode<'a, T>(&'a mut self, input: &str) -> Fallible<T>
+    pub(crate) fn parse_sourcecode<T>(&mut self, input: &str) -> Fallible<T>
     where
         T: Parse,
     {
@@ -69,7 +77,7 @@ impl Capsule {
         res
     }
 
-    pub(crate) fn push(&mut self) -> ContextGuard<'_> {
+    pub(crate) fn push(&mut self) -> ContextGuard<'_, 'a> {
         ContextGuard::new(self)
     }
 
@@ -78,35 +86,35 @@ impl Capsule {
     }
 
     pub(crate) fn print(&mut self, args: fmt::Arguments<'_>) -> Fallible<()> {
-        write!(std::io::stdout(), "{}", args).expect("write error");
+        write!(&mut self.stdout, "{}", args).expect("write error");
         Ok(())
     }
 }
 
-pub(crate) struct ContextGuard<'a>(&'a mut Capsule);
+pub(crate) struct ContextGuard<'a, 'b>(&'a mut Capsule<'b>);
 
-impl<'a> ContextGuard<'a> {
-    fn new(ctx: &'a mut Capsule) -> Self {
+impl<'a, 'b> ContextGuard<'a, 'b> {
+    fn new(ctx: &'a mut Capsule<'b>) -> Self {
         ctx.environment.push();
         ContextGuard(ctx)
     }
 }
 
-impl Drop for ContextGuard<'_> {
+impl Drop for ContextGuard<'_, '_> {
     fn drop(&mut self) {
         self.0.environment.pop();
     }
 }
 
-impl<'a> Deref for ContextGuard<'a> {
-    type Target = Capsule;
+impl<'b> Deref for ContextGuard<'_, 'b> {
+    type Target = Capsule<'b>;
 
     fn deref(&self) -> &Self::Target {
         &*self.0
     }
 }
 
-impl<'a> DerefMut for ContextGuard<'a> {
+impl DerefMut for ContextGuard<'_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.0
     }
@@ -118,7 +126,7 @@ mod de {
 
     use super::*;
 
-    impl Capsule {
+    impl Capsule<'_> {
         pub(crate) fn parse<'de, T, D>(&mut self, deserializer: D) -> Fallible<T>
         where
             T: DeserializeState<'de, ExprArena>,

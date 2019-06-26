@@ -15,13 +15,13 @@ pub(crate) use self::expr::eval_in_context;
 pub trait Evaluate {
     type Value;
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value>;
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value>;
 }
 
 impl Evaluate for PackageProgram {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         for dep in &self.uses {
             dep.eval(ctx)?;
         }
@@ -36,7 +36,7 @@ impl Evaluate for PackageProgram {
 impl Evaluate for PackageDep {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let pkg = ctx.load(self.path.clone())?;
         for name in &self.imports {
             let value = pkg.environment.lookup_name(&name)?;
@@ -49,7 +49,7 @@ impl Evaluate for PackageDep {
 impl Evaluate for Binding {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         let val = self.value.eval(ctx)?;
         ctx.bind(&self.name, val);
         Ok(())
@@ -59,7 +59,7 @@ impl Evaluate for Binding {
 impl Evaluate for ScriptProgram {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         for stmt in &self.statements {
             stmt.eval(ctx)?;
         }
@@ -70,7 +70,7 @@ impl Evaluate for ScriptProgram {
 impl Evaluate for Statement {
     type Value = ();
 
-    fn eval(&self, ctx: &mut Capsule) -> Fallible<Self::Value> {
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
         match self {
             Statement::Binding(b) => b.eval(ctx),
             Statement::Expr(expr) => {

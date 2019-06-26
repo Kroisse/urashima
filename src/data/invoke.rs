@@ -10,7 +10,7 @@ pub trait Invoke {
     type Receiver;
     fn invoke(
         &self,
-        ctx: &mut Capsule,
+        ctx: &mut Capsule<'_>,
         receiver: &Self::Receiver,
         args: &[Variant],
     ) -> Fallible<Variant>;
@@ -24,7 +24,7 @@ macro_rules! impl_native_method {
     (@impls $($t:ident),*) => {
         impl<Func, T, $($t,)* R> From<Func> for NativeMethod<Func, T, ($($t,)*), R>
         where
-            Func: Fn(&mut Capsule, &T, $($t),*) -> Fallible<R>,
+            Func: Fn(&mut Capsule<'_>, &T, $($t),*) -> Fallible<R>,
             R: Into<Variant>
         {
             fn from(f: Func) -> Self { NativeMethod(f, PhantomData) }
@@ -33,12 +33,12 @@ macro_rules! impl_native_method {
         #[allow(non_snake_case, unused_mut, unused_variables)]
         impl<Func, T, $($t,)* R> Invoke for NativeMethod<Func, T, ($($t,)*), R>
         where
-            Func: Fn(&mut Capsule, &T, $($t),*) -> Fallible<R>,
+            Func: Fn(&mut Capsule<'_>, &T, $($t),*) -> Fallible<R>,
             $($t: FromNaru<Variant>,)*
             R: Into<Variant>,
         {
             type Receiver = T;
-            fn invoke(&self, ctx: &mut Capsule, receiver: &Self::Receiver, args: &[Variant]) -> Fallible<Variant> {
+            fn invoke(&self, ctx: &mut Capsule<'_>, receiver: &Self::Receiver, args: &[Variant]) -> Fallible<Variant> {
                 if args.len() != impl_native_method!(@count $($t,)*) {
                     return Err(Error::value(""));
                 }

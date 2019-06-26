@@ -26,7 +26,7 @@ impl Variant {
         Variant::Record(Record::unit())
     }
 
-    pub fn typename(&self, _ctx: &mut Capsule) -> Symbol {
+    pub fn typename(&self, _ctx: &mut Capsule<'_>) -> Symbol {
         match self {
             Variant::Bool(_) => symbol!("bool"),
             Variant::Int(_) => symbol!("int"),
@@ -46,7 +46,7 @@ impl Variant {
         }
     }
 
-    pub fn as_function<'a>(&self, ctx: &'a Capsule) -> Option<&'a Function> {
+    pub fn as_function<'a>(&self, ctx: &'a Capsule<'_>) -> Option<&'a Function> {
         if let Variant::Fn(idx) = self {
             ctx.environment.get_function(*idx)
         } else {
@@ -72,7 +72,7 @@ impl Variant {
 
     pub fn invoke(
         &self,
-        ctx: &mut Capsule,
+        ctx: &mut Capsule<'_>,
         method: Symbol,
         arguments: &[Variant],
     ) -> Fallible<Variant> {
@@ -97,17 +97,17 @@ lazy_static! {
         let mut m = VirtualTable::<Int>::new();
         m.insert(
             "abs".into(),
-            Box::new(NativeMethod::from(|_: &mut Capsule, this: &Int| {
+            Box::new(NativeMethod::from(|_: &mut Capsule<'_>, this: &Int| {
                 Ok(this.abs().to_biguint().expect("unreachable"))
             })),
         );
         m.insert(
             "negate".into(),
-            Box::new(NativeMethod::from(|_: &mut Capsule, this: &Int| Ok(-this))),
+            Box::new(NativeMethod::from(|_: &mut Capsule<'_>, this: &Int| Ok(-this))),
         );
         m.insert(
             "println".into(),
-            Box::new(NativeMethod::from(|ctx: &mut Capsule, this: &Int| {
+            Box::new(NativeMethod::from(|ctx: &mut Capsule<'_>, this: &Int| {
                 ctx.print(format_args!("{}\n", this))
             })),
         );
@@ -117,7 +117,7 @@ lazy_static! {
         let mut m = VirtualTable::<String>::new();
         m.insert(
             "println".into(),
-            Box::new(NativeMethod::from(|ctx: &mut Capsule, this: &String| {
+            Box::new(NativeMethod::from(|ctx: &mut Capsule<'_>, this: &String| {
                 ctx.print(format_args!("{}\n", this))
             })),
         );
