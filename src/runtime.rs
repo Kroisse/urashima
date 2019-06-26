@@ -57,29 +57,25 @@ impl Runtime {
 
 #[cfg(test)]
 mod test {
-    use failure::Fallible;
-
     use super::*;
 
     #[test]
-    fn helloworld() -> Fallible<()> {
+    fn helloworld() {
         let s = include_str!("../tests/helloworld.n");
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
-        let prog: ScriptProgram = parse(&mut capsule.expr_arena, &s)?;
-        capsule.eval(&prog)?;
-        Ok(())
+        let prog: ScriptProgram = parse(&mut capsule.expr_arena, &s).unwrap();
+        capsule.eval(&prog).unwrap();
     }
 
     #[cfg(feature = "deserialize")]
     #[test]
-    fn helloworld_yaml() -> Fallible<()> {
+    fn helloworld_yaml() {
         let s = include_bytes!("../tests/helloworld.yaml");
-        let prog: serde_yaml::Value = serde_yaml::from_slice(&*s)?;
+        let prog: serde_yaml::Value = serde_yaml::from_slice(&*s).unwrap();
         let rt = Runtime::new();
         let mut capsule = rt.root_capsule();
-        let prog: ScriptProgram = capsule.parse(prog)?;
-        capsule.eval(&prog)?;
-        Ok(())
+        let prog: ScriptProgram = capsule.parse(prog).unwrap();
+        capsule.eval(&prog).unwrap();
     }
 }
