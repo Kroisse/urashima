@@ -20,6 +20,14 @@ pub struct BlockExpression {
 }
 
 impl BlockExpression {
+    pub(crate) fn single(expr: ExprIndex) -> Self {
+        BlockExpression {
+            statements: vec![],
+            returns: expr,
+            __opaque: (),
+        }
+    }
+
     pub fn statements(&self) -> &[Statement] {
         &self.statements
     }

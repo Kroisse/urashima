@@ -180,6 +180,15 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
                 Expression::Fn(expr)
             }
             Rule::name => Expression::Name(head.as_str().into()),
+
+            Rule::if_expression => {
+                let expr = IfExpression::from_pairs(&mut *arena, head.into_inner())?;
+                Expression::If(expr)
+            }
+            Rule::loop_expression => {
+                let expr = LoopExpression::from_pairs(&mut *arena, head.into_inner())?;
+                Expression::Loop(expr)
+            }
             _ => {
                 return Err(Error::unimplemented());
             }

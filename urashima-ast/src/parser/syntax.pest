@@ -1,32 +1,30 @@
 package_program = _{
 	SOI ~
 	separator? ~
-	(directive | binding)* ~
+	((directive | binding) ~ separator)* ~
 	EOI
 }
 
 script_program = _{
 	SOI ~
 	separator? ~
-	statement* ~
+	(statement ~ separator)* ~
 	EOI
 }
 
-directive = _{ use_declaration ~ separator }
+directive = _{ use_declaration }
 
 use_declaration = { KEYWORD_USE ~ use_path ~ use_imports? }
 use_path = { name+ }
 use_imports = { "*" | grouping_paren_open ~ name ~ (COMMA ~ name)* ~ grouping_paren_close }
-binding = _{ binding_statement ~ separator }
+binding = _{ binding_statement }
 
 statement = {
-	(
-		break_statement |
-		continue_statement |
-		return_statement |
-		binding_statement |
-		expression
-	) ~ separator
+	break_statement |
+	continue_statement |
+	return_statement |
+	binding_statement |
+	expression
 }
 binding_statement = { name ~ OPERATOR_BIND ~ expression }
 break_statement = { KEYWORD_BREAK }
@@ -37,18 +35,29 @@ expression = { operator_expression | operand_expression }
 operator_expression = _{ operand_expression ~ (operator ~ operand_expression)* }
 operand_expression = { atomic_expression ~ method_call* }
 method_call = { name ~ grouping_paren_open ~ (expression ~ (COMMA ~ expression)* ~ COMMA?)? ~ grouping_paren_close }
-atomic_expression = _{ grouping_paren | grouping_brace | fn_expression | if_expression | literal | name }
+atomic_expression = _{
+	grouping_paren |
+	grouping_brace |
+	fn_expression |
+	if_expression |
+	loop_expression |
+	literal |
+	name
+}
 
 fn_expression = { KEYWORD_FN ~ fn_parameters? ~ grouping_brace }
 fn_parameters = _{ grouping_paren_open ~ (fn_param ~ (COMMA ~ fn_param)* ~ COMMA?)? ~ grouping_paren_close }
 fn_param = { name }
 
+if_expression = { KEYWORD_IF ~ expression ~ grouping_brace ~ (KEYWORD_ELSE ~ (if_expression | grouping_brace))? }
+loop_expression = { KEYWORD_LOOP ~ grouping_brace }
+
 grouping_paren = { grouping_paren_open ~ expression ~ grouping_paren_close }
 grouping_brace = {
 	grouping_brace_open ~
 	separator? ~
-	statement* ~
-	(expression ~ separator?)? ~
+	(statement ~ separator)* ~
+	((expression | statement) ~ separator?)? ~
 	grouping_brace_close
 }
 
@@ -61,11 +70,11 @@ name = @{ quoted_name | !KEYWORD ~ IDENTIFIER }
 quoted_name = { QUOTE ~ IDENTIFIER ~ QUOTE }
 
 name_start = { "_" | ASCII_ALPHA }
-decimal_digit = { '0'..'9' }
+decimal_digit = { ASCII_DIGIT }
 
 literal = _{ boolean | string_literal | numeric }
 boolean = { KEYWORD_FALSE | KEYWORD_TRUE }
-numeric = @{ ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* ~ ( "." ~ ASCII_DIGIT )? }
+numeric = @{ "0" | (ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* ~ ( "." ~ ASCII_DIGIT )?) }
 string_literal = _{ PUSH("\"" | "'") ~ string ~ POP }
 string = @{ (!(NEWLINE | PEEK) ~ ANY)* }
 
@@ -89,8 +98,11 @@ line_comment = _{ LINE_COMMENT_START ~ (!NEWLINE ~ ANY)* ~ NEWLINE }
 
 KEYWORD_BREAK = _{ "break" }
 KEYWORD_CONTINUE = _{ "continue" }
+KEYWORD_ELSE = _{ "else" }
 KEYWORD_FALSE = _{ "false" }
 KEYWORD_FN = _{ "fn" }
+KEYWORD_IF = _{ "if" }
+KEYWORD_LOOP = _{ "loop" }
 KEYWORD_RETURN = _{ "return" }
 KEYWORD_TRUE = _{ "true" }
 KEYWORD_USE = _{ "use" }
