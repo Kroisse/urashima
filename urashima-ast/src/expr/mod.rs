@@ -11,7 +11,7 @@ use lazy_static::lazy_static;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use urashima_util::Symbol;
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
@@ -28,8 +28,8 @@ pub use self::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
-#[cfg_attr(deserialize, serde(untagged))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", serde(untagged))]
 pub enum Expression {
     Atomic(AtomicExpression),
     Operator(OperatorExpression),

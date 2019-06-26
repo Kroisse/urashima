@@ -4,7 +4,7 @@ use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Vis
 use urashima_util::num::{Int, Nat};
 use urashima_util::Symbol;
 
-use super::{super::Expression, Alloc, ExprArena, ExprIndex};
+use super::{super::Expression, Alloc, ExprIndex};
 
 impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, ExprIndex> {
     /// The type produced by using this seed.

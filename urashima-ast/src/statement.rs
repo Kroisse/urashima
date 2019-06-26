@@ -1,6 +1,6 @@
 use urashima_util::Symbol;
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub enum Statement {
     Binding(Symbol, Expression),
     Expr(Expression),

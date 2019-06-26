@@ -1,16 +1,17 @@
+use serde::de::{Deserialize, DeserializeSeed, Deserializer};
 use urashima_util::{PackagePath, Symbol};
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
 use crate::{
     error::Fallible,
-    expr::{ExprArena, Expression},
+    expr::{Alloc, ExprArena, Expression},
     parser::{Pairs, Parse, Rule},
     statement::Statement,
 };
 
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct PackageProgram {
     /// Dependencies
     pub uses: Vec<PackageDep>,
@@ -23,39 +24,31 @@ pub struct PackageProgram {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct PackageDep {
     pub path: PackagePath,
     pub imports: Vec<Symbol>,
 }
 
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct Binding {
     pub name: Symbol,
     pub value: Expression,
 }
 
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct ScriptProgram {
     pub statements: Vec<Statement>,
 }
 
-#[cfg(deserialize)]
-mod de {
-    use serde::de::DeserializeSeed;
+impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, PackagePath> {
+    type Value = PackagePath;
 
-    use super::*;
-    use crate::expr::Alloc;
-
-    impl<'a, 'de> DeserializeSeed<'de> for Alloc<'a, PackagePath> {
-        type Value = PackagePath;
-
-        fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            Deserialize::deserialize(deserializer)
-        }
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Deserialize::deserialize(deserializer)
     }
 }
 

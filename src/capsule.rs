@@ -3,11 +3,7 @@ use std::io::prelude::*;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Weak};
 
-use urashima_ast::{
-    expr::{Alloc, ExprArena},
-    program::PackageProgram,
-    Parse,
-};
+use urashima_ast::{expr::ExprArena, program::PackageProgram, Parse};
 use urashima_util::PackagePath;
 
 use crate::{
@@ -87,12 +83,6 @@ impl Capsule {
     }
 }
 
-impl Capsule {
-    pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
-        Alloc::from(&mut self.expr_arena)
-    }
-}
-
 pub(crate) struct ContextGuard<'a>(&'a mut Capsule);
 
 impl<'a> ContextGuard<'a> {
@@ -122,9 +112,12 @@ impl<'a> DerefMut for ContextGuard<'a> {
     }
 }
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 mod de {
     use serde::de::{DeserializeSeed, Deserializer};
+    use urashima_ast::expr::Alloc;
+
+    use super::*;
 
     pub(crate) trait Parse<'a>: Sized {
         fn parse<D>(capsule: &'a mut Capsule, deserializer: D) -> Fallible<Self>
@@ -152,6 +145,10 @@ mod de {
             D: for<'de> Deserializer<'de>,
         {
             Parse::parse(self, deserializer)
+        }
+
+        pub(crate) fn alloc<T>(&mut self) -> Alloc<'_, T> {
+            Alloc::from(&mut self.expr_arena)
         }
     }
 }

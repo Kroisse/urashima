@@ -1,0 +1,7 @@
+statements:
+- Expr:
+    Invoke:
+      receiver:
+        Str: "Hello, world!"
+      method: "println"
+      arguments: []

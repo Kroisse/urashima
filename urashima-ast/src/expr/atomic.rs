@@ -2,7 +2,7 @@ use std::fmt;
 
 use urashima_util::Symbol;
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Display, ExprArena, ExprIndex, Expression};
@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub enum AtomicExpression {
     False,
     True,
@@ -29,7 +29,7 @@ pub enum AtomicExpression {
 }
 
 #[derive(Clone, Debug)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub struct BlockExpression {
     statements: Vec<Statement>,
     returns: ExprIndex,

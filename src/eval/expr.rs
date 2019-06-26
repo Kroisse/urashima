@@ -211,7 +211,7 @@ fn expr_fn(ctx: &mut Capsule, parameters: &[Symbol], body: &BlockExpression) -> 
     Ok(Variant::Fn(idx))
 }
 
-#[cfg(all(deserialize, test))]
+#[cfg(all(feature = "deserialize", test))]
 mod test_expr_atomic {
     use failure::Fallible;
     use serde_json::json;
@@ -370,7 +370,7 @@ mod test_expr_atomic {
     }
 }
 
-#[cfg(all(deserialize, test))]
+#[cfg(all(feature = "deserialize", test))]
 mod test_expr_call {
     use failure::Fallible;
     use serde_json::json;
@@ -410,7 +410,7 @@ mod test_expr_call {
     }
 }
 
-#[cfg(all(deserialize, test))]
+#[cfg(all(feature = "deserialize", test))]
 mod test_expr_op {
     use failure::Fallible;
     use serde_json::json;

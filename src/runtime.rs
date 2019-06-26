@@ -71,7 +71,7 @@ mod test {
         Ok(())
     }
 
-    #[cfg(deserialize)]
+    #[cfg(feature = "deserialize")]
     #[test]
     fn helloworld_yaml() -> Fallible<()> {
         let s = include_bytes!("../tests/helloworld.yaml");

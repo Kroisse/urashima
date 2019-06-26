@@ -2,18 +2,18 @@ use std::fmt;
 
 use urashima_util::Symbol;
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Display, ExprIndex};
 
 #[derive(Clone, Debug)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub enum OperatorExpression {
-    #[cfg_attr(deserialize, serde(rename = "infix"))]
+    #[cfg_attr(feature = "deserialize", serde(rename = "infix"))]
     Infix(Symbol, ExprIndex, ExprIndex),
 
-    #[cfg_attr(deserialize, serde(rename = "new"))]
+    #[cfg_attr(feature = "deserialize", serde(rename = "new"))]
     New(ExprIndex),
 }
 

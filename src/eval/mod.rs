@@ -79,7 +79,7 @@ impl Evaluate for Statement {
     }
 }
 
-#[cfg(all(deserialize, test))]
+#[cfg(all(feature = "deserialize", test))]
 mod test_stmt {
     use failure::Fallible;
     use serde_json::json;

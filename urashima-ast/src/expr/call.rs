@@ -2,25 +2,25 @@ use std::fmt;
 
 use urashima_util::Symbol;
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde_derive_urashima::DeserializeSeed;
 
 use super::{Display, ExprIndex};
 
 #[derive(Clone, Debug)]
-#[cfg_attr(deserialize, derive(DeserializeSeed))]
+#[cfg_attr(feature = "deserialize", derive(DeserializeSeed))]
 pub enum CallExpression {
-    #[cfg_attr(deserialize, serde(alias = "Call"))]
+    #[cfg_attr(feature = "deserialize", serde(alias = "Call"))]
     FunctionCall {
         callee: ExprIndex,
-        #[cfg_attr(deserialize, serde(default))]
+        #[cfg_attr(feature = "deserialize", serde(default))]
         arguments: Vec<ExprIndex>,
     },
-    #[cfg_attr(deserialize, serde(alias = "Invoke"))]
+    #[cfg_attr(feature = "deserialize", serde(alias = "Invoke"))]
     MethodInvocation {
         receiver: ExprIndex,
         method: Symbol,
-        #[cfg_attr(deserialize, serde(default))]
+        #[cfg_attr(feature = "deserialize", serde(default))]
         arguments: Vec<ExprIndex>,
     },
 }

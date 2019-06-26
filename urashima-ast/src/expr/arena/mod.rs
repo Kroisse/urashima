@@ -1,11 +1,11 @@
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 mod impls;
 
 use std::marker::PhantomData;
 
 use urashima_util::{Arena, Index};
 
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 use serde::de::{self, DeserializeSeed, Deserializer, Visitor};
 
 use super::Expression;
@@ -46,7 +46,7 @@ impl<'a, 'de, T> Alloc<'a, T> {
 
 /// If the missing field is of type `Option<T>` then treat is as `None`,
 /// otherwise it is an error.
-#[cfg(deserialize)]
+#[cfg(feature = "deserialize")]
 pub fn missing_field<'de, V, E>(seed: V, field: &'static str) -> Result<V::Value, E>
 where
     V: DeserializeSeed<'de>,
