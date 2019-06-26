@@ -9,7 +9,6 @@ use crate::{
 
 /// Execution context
 #[derive(Clone, Default)]
-#[cfg_attr(test, derive(Debug))]
 pub struct Environment {
     pub(crate) values: Vec<Variant>,
     pub(crate) names: Vec<Symbol>,
@@ -65,14 +64,6 @@ impl Environment {
     }
 }
 
-#[cfg(not(test))]
-impl ::std::fmt::Debug for Environment {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        f.write_str("Environment")
-    }
-}
-
-#[cfg_attr(test, derive(Debug))]
 pub struct Package {
     pub(crate) environment: Environment,
 }

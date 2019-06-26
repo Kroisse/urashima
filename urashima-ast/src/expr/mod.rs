@@ -27,7 +27,8 @@ pub use self::{
     function::{FunctionExpression, Parameter},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub enum Expression {
@@ -147,7 +148,7 @@ impl Parse for Expression {
                 Rule::operand_expression => {
                     parse_operand_expression(&mut *cell.borrow_mut(), p.into_inner())
                 }
-                _ => unreachable!("{:#?}", p),
+                _ => unreachable!(),
             },
             |left, op, right| {
                 let mut arena = cell.borrow_mut();
@@ -208,7 +209,7 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
                 let (method, args) = parse_method_call(&mut *arena, rest.into_inner())?;
                 expr = Expression::invoke(arena.insert(expr), method, args);
             }
-            _ => unreachable!("{:?}", rest),
+            _ => unreachable!(),
         }
     }
     Ok(expr)
@@ -229,7 +230,7 @@ fn parse_method_call(
     let arguments = pairs
         .map(|rest| match rest.as_rule() {
             Rule::expression => ExprIndex::from_pair(&mut *arena, rest),
-            _ => unreachable!("{:?}", rest),
+            _ => unreachable!(),
         })
         .collect::<Fallible<_>>()?;
     Ok((method_name, arguments))

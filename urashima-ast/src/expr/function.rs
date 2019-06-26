@@ -12,7 +12,8 @@ use crate::{
     print::{self, Print},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct FunctionExpression {
@@ -24,7 +25,8 @@ pub struct FunctionExpression {
     __opaque: (),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Parameter(Symbol);
 
@@ -55,10 +57,10 @@ impl Parse for FunctionExpression {
                     if block.is_none() {
                         block = Some(BlockExpression::from_pairs(&mut *arena, item.into_inner())?);
                     } else {
-                        unreachable!("{:?}", item);
+                        unreachable!();
                     }
                 }
-                _ => unreachable!("{:?}", item),
+                _ => unreachable!(),
             }
         }
         Ok(FunctionExpression {

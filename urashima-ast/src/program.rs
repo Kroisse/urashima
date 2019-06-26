@@ -27,14 +27,16 @@ pub struct PackageProgram {
     pub bindings: Vec<Binding>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct PackageDep {
     pub path: PackagePath,
     pub imports: Vec<Symbol>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct Binding {
@@ -65,7 +67,7 @@ impl Parse for PackageProgram {
                     bindings.push(Binding::from_pairs(&mut *arena, item.into_inner())?);
                 }
                 Rule::EOI => (),
-                _ => unreachable!("{:?}", item),
+                _ => unreachable!(),
             }
         }
 
@@ -127,7 +129,7 @@ impl Parse for Binding {
                         unreachable!();
                     }
                 }
-                _ => unreachable!("{:?}", i),
+                _ => unreachable!(),
             }
         }
         Ok(Binding {
@@ -148,7 +150,7 @@ impl Parse for ScriptProgram {
                     statements.push(Statement::from_pairs(&mut *arena, item.into_inner())?);
                 }
                 Rule::EOI => (),
-                _ => unreachable!("{:?}", item),
+                _ => unreachable!(),
             }
         }
 

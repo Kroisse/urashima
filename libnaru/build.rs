@@ -9,6 +9,6 @@ fn main() {
         .with_include_guard("_naru__bindings_h_")
         .with_namespace("naru")
         .generate()
-        // .expect("Unable to generate bindings")
-        .map(|b| b.write_to_file("naru.h"));
+        .map(|b| b.write_to_file("naru.h"))
+        .expect("Unable to generate bindings");
 }

@@ -7,7 +7,8 @@ use crate::{
     parser::{Pairs, Parse, Rule},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct IfExpression {
@@ -24,7 +25,8 @@ pub struct IfExpression {
     __opaque: (),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct LoopExpression {
@@ -47,7 +49,7 @@ impl Parse for IfExpression {
                 Rule::if_expression => IfExpression::from_pairs(arena, pair.into_inner())
                     .map(|expr| BlockExpression::single(expr.into())),
                 Rule::grouping_brace => BlockExpression::from_pairs(arena, pair.into_inner()),
-                _ => unreachable!("{:?}", pair),
+                _ => unreachable!(),
             })
             .transpose()?;
         Ok(IfExpression {

@@ -43,17 +43,6 @@ impl Error {
         ErrorKind::Unimplemented.into()
     }
 
-    pub(crate) fn name(name: impl Into<Symbol>) -> Error {
-        ErrorKind::Name { name: name.into() }.into()
-    }
-
-    pub(crate) fn invalid_type(expected: impl Into<Symbol>) -> Error {
-        ErrorKind::Type {
-            expected: expected.into(),
-        }
-        .into()
-    }
-
     pub(crate) fn is_unexpected(&self) -> bool {
         if let ErrorKind::UnexpectedRule { .. } = self.inner.get_context() {
             true

@@ -9,7 +9,8 @@ use serde_derive_state::DeserializeState;
 #[cfg(feature = "deserialize")]
 use super::ExprArena;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct CallExpression {
@@ -22,7 +23,8 @@ pub struct CallExpression {
     __opaque: (),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct InvokeExpression {

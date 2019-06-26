@@ -9,7 +9,7 @@ use crate::{
     error::{Error, Fallible},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Variant {
     Bool(bool),
     Int(Int),

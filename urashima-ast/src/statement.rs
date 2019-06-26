@@ -9,7 +9,8 @@ use crate::{
     program::{Binding, PackageDep},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub enum Statement {
@@ -45,7 +46,7 @@ impl Parse for Statement {
                 &mut *arena,
                 item.into_inner(),
             )?)),
-            _ => unreachable!("{:?}", item),
+            _ => unreachable!(),
         }
     }
 }

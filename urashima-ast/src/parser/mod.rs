@@ -51,8 +51,8 @@ pub(crate) fn ensure_single(mut pairs: Pairs<'_>) -> Pair<'_> {
     } else {
         unreachable!();
     };
-    if let Some(second) = pairs.next() {
-        unreachable!("{:?}", second);
+    if pairs.next().is_some() {
+        unreachable!();
     }
     inner
 }

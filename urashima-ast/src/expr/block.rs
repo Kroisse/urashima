@@ -8,7 +8,8 @@ use crate::{
     statement::Statement,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 pub struct BlockExpression {
     statements: Vec<Statement>,
 

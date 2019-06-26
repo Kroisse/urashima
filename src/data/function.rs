@@ -6,7 +6,7 @@ use crate::{
 };
 use urashima_ast::expr::{BlockExpression, ExprIndex};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Function {
     parameters: Vec<Symbol>,
     body: BlockExpression,

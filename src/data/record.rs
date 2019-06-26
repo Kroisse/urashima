@@ -4,7 +4,7 @@ use urashima_util::Index;
 
 use super::{Symbol, Variant};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Record {
     pub(crate) fields: Vec<Field>,
 }
@@ -34,7 +34,7 @@ impl FromIterator<(Symbol, Index<Variant>)> for Record {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Field {
     label: Symbol,
     value: Index<Variant>,
