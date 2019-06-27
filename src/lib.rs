@@ -21,6 +21,7 @@ mod data;
 
 mod environment;
 mod eval;
+mod inst;
 
 pub mod capsule;
 pub mod error;

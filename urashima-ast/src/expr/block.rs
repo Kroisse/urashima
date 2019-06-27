@@ -43,6 +43,19 @@ impl BlockExpression {
             &UNIT
         }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Statement> {
+        self.statements.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a BlockExpression {
+    type Item = &'a Statement;
+    type IntoIter = std::slice::Iter<'a, Statement>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.statements.iter()
+    }
 }
 
 impl Parse for BlockExpression {
