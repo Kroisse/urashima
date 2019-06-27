@@ -224,10 +224,7 @@ fn parse_operand_expression(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fall
     Ok(expr)
 }
 
-fn parse_call_arguments(
-    arena: &mut ExprArena,
-    pairs: Pairs<'_>,
-) -> Fallible<Vec<ExprIndex>> {
+fn parse_call_arguments(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Vec<ExprIndex>> {
     pairs
         .map(|rest| match rest.as_rule() {
             Rule::expression => ExprIndex::from_pair(&mut *arena, rest),

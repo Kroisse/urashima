@@ -103,7 +103,9 @@ lazy_static! {
         );
         m.insert(
             "negate".into(),
-            Box::new(NativeMethod::from(|_: &mut Capsule<'_>, this: &Int| Ok(-this))),
+            Box::new(NativeMethod::from(|_: &mut Capsule<'_>, this: &Int| {
+                Ok(-this)
+            })),
         );
         m.insert(
             "println".into(),
@@ -117,9 +119,9 @@ lazy_static! {
         let mut m = VirtualTable::<String>::new();
         m.insert(
             "println".into(),
-            Box::new(NativeMethod::from(|ctx: &mut Capsule<'_>, this: &String| {
-                ctx.print(format_args!("{}\n", this))
-            })),
+            Box::new(NativeMethod::from(
+                |ctx: &mut Capsule<'_>, this: &String| ctx.print(format_args!("{}\n", this)),
+            )),
         );
         m
     };
