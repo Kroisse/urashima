@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub enum Statement {
@@ -25,7 +25,11 @@ pub enum Statement {
 impl Parse for Statement {
     const RULE: Rule = Rule::statement;
 
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        span: pest::Span<'i>,
+        pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
         let item = ensure_single(pairs);
         match item.as_rule() {
             Rule::break_statement => Ok(Statement::Break),
@@ -34,16 +38,19 @@ impl Parse for Statement {
                 let expr = if let Some(ret) = item.into_inner().next() {
                     Expression::from_pair(&mut *arena, ret)?
                 } else {
-                    Expression::unit()
+                    Expression::unit(
+                        &pest::Span::new(span.as_str(), span.end(), span.end()).unwrap(),
+                    )
                 };
                 Ok(Statement::Return(expr))
             }
             Rule::binding_statement => {
-                let binding = Binding::from_pairs(&mut *arena, item.into_inner())?;
+                let binding = Binding::from_pairs(&mut *arena, item.as_span(), item.into_inner())?;
                 Ok(Statement::Binding(binding))
             }
             Rule::expression => Ok(Statement::Expr(Expression::from_pairs(
                 &mut *arena,
+                item.as_span(),
                 item.into_inner(),
             )?)),
             _ => unreachable!(),

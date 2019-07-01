@@ -14,11 +14,13 @@ use crate::{
     runtime::RuntimeContextRef,
 };
 
+pub use self::builder::CapsuleBuilder;
+
 pub struct Capsule<'a> {
     pub(crate) ctx: RuntimeContextRef,
     pub(crate) environment: Environment,
     pub(crate) expr_arena: ExprArena,
-    pub(crate) stdout: Box<dyn Write + 'a>,
+    pub(crate) stdout: Box<dyn Write + Send + 'a>,
 }
 
 impl Capsule<'static> {
@@ -28,7 +30,7 @@ impl Capsule<'static> {
 }
 
 impl<'a> Capsule<'a> {
-    pub(crate) fn new(ctx: RuntimeContextRef, stdout: Box<dyn Write + 'a>) -> Self {
+    pub(crate) fn new(ctx: RuntimeContextRef, stdout: Box<dyn Write + Send + 'a>) -> Self {
         Capsule {
             ctx,
             environment: Default::default(),
@@ -37,7 +39,7 @@ impl<'a> Capsule<'a> {
         }
     }
 
-    pub(crate) fn parse_sourcecode<T>(&mut self, input: &str) -> Fallible<T>
+    pub fn parse_sourcecode<T>(&mut self, input: &str) -> Fallible<T>
     where
         T: Parse,
     {
@@ -46,7 +48,7 @@ impl<'a> Capsule<'a> {
 
     pub fn eval<T>(&mut self, code: &T) -> Fallible<T::Value>
     where
-        T: Evaluate,
+        T: Evaluate + ?Sized,
     {
         code.eval(self)
     }
@@ -117,6 +119,33 @@ impl<'b> Deref for ContextGuard<'_, 'b> {
 impl DerefMut for ContextGuard<'_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.0
+    }
+}
+
+mod builder {
+    use super::*;
+
+    pub struct CapsuleBuilder<'a> {
+        ctx: RuntimeContextRef,
+        stdout: Option<Box<dyn Write + Send + 'a>>,
+    }
+
+    impl<'a> CapsuleBuilder<'a> {
+        pub(crate) fn new(ctx: RuntimeContextRef) -> Self {
+            CapsuleBuilder { ctx, stdout: None }
+        }
+
+        pub fn stdout(mut self, w: Box<dyn Write + Send + 'a>) -> Self {
+            self.stdout = Some(w);
+            self
+        }
+
+        pub fn build(self) -> Capsule<'a> {
+            Capsule::new(
+                self.ctx,
+                self.stdout.unwrap_or_else(|| Box::new(std::io::stdout())),
+            )
+        }
     }
 }
 

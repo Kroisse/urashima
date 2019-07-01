@@ -1,7 +1,10 @@
 use urashima_util::Symbol;
 
 use super::ExprIndex;
-use crate::print::{self, Print};
+use crate::{
+    print::{self, Print},
+    span::Spanned,
+};
 
 #[cfg(feature = "deserialize")]
 use serde_derive_state::DeserializeState;
@@ -10,36 +13,36 @@ use serde_derive_state::DeserializeState;
 use super::ExprArena;
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct CallExpression {
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub callee: ExprIndex,
     #[cfg_attr(feature = "deserialize", serde(default, state))]
-    pub arguments: Vec<ExprIndex>,
+    pub arguments: Spanned<Vec<ExprIndex>>,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]
     __opaque: (),
 }
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct InvokeExpression {
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub receiver: ExprIndex,
-    pub method: Symbol,
+    pub method: Spanned<Symbol>,
     #[cfg_attr(feature = "deserialize", serde(default, state))]
-    pub arguments: Vec<ExprIndex>,
+    pub arguments: Spanned<Vec<ExprIndex>>,
 
     #[cfg_attr(feature = "deserialize", serde(skip))]
     __opaque: (),
 }
 
 impl CallExpression {
-    pub(super) fn new(callee: ExprIndex, arguments: Vec<ExprIndex>) -> Self {
+    pub(super) fn new(callee: ExprIndex, arguments: Spanned<Vec<ExprIndex>>) -> Self {
         CallExpression {
             callee,
             arguments,
@@ -49,7 +52,11 @@ impl CallExpression {
 }
 
 impl InvokeExpression {
-    pub(super) fn new(receiver: ExprIndex, method: Symbol, arguments: Vec<ExprIndex>) -> Self {
+    pub(super) fn new(
+        receiver: ExprIndex,
+        method: Spanned<Symbol>,
+        arguments: Spanned<Vec<ExprIndex>>,
+    ) -> Self {
         InvokeExpression {
             receiver,
             method,
@@ -76,7 +83,7 @@ impl Print for InvokeExpression {
             f,
             "{} {}({})",
             f.display(&self.receiver),
-            self.method,
+            self.method.node,
             f.display_seq(&self.arguments[..], ", "),
         )
     }

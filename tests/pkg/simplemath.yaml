@@ -1,0 +1,17 @@
+metadata:
+  authors:
+  - "Eunchong Yu <kroisse@gmail.com>"
+uses: []
+bindings:
+- name: "add"
+  value:
+    Fn:
+      parameters:
+      - 'x'
+      - 'y'
+      body:
+        statements: []
+        returns:
+          '+':
+          - Name: 'x'
+          - Name: 'y'

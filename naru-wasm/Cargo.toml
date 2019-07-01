@@ -1,0 +1,21 @@
+[package]
+name = "naru-wasm"
+version = "0.1.0"
+authors = ["Eunchong Yu <kroisse@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "naru"
+crate-type = ["cdylib"]
+doc = false
+
+[dependencies]
+urashima = { path = ".." }
+wasm-bindgen = "0.2.47"
+wee_alloc = "0.4"
+
+[dependencies.web-sys]
+version = "0.3.24"
+features = [
+    "console",
+]

@@ -13,8 +13,12 @@ pub type ExprIndex = Index<Expression>;
 impl Parse for ExprIndex {
     const RULE: Rule = Rule::expression;
 
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
-        let expr = Expression::from_pairs(&mut *arena, pairs)?;
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        span: pest::Span<'i>,
+        pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
+        let expr = Expression::from_pairs(&mut *arena, span, pairs)?;
         Ok(arena.insert(expr))
     }
 }

@@ -7,7 +7,7 @@ use crate::data::{Int, Nat, Symbol};
 pub type LocalIndex = u32;
 
 #[derive(PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 pub enum Instruction {
     Unreachable,
     Nop,

@@ -9,6 +9,7 @@ script_program = _{
 	SOI ~
 	separator? ~
 	(statement ~ separator)* ~
+	(statement ~ separator?)? ~
 	EOI
 }
 

@@ -6,7 +6,7 @@ use urashima_ast::program::ScriptProgram;
 use urashima_util::PackagePath;
 
 use crate::{
-    capsule::Capsule,
+    capsule::{Capsule, CapsuleBuilder},
     environment::Package,
     error::{Error, Fallible},
     eval::Evaluate,
@@ -31,10 +31,10 @@ impl Default for Runtime {
 
 impl Runtime {
     pub fn new() -> Self {
-        let cur_dir = std::env::current_dir().unwrap();
+        // let cur_dir = std::env::current_dir().unwrap();
         let ctx = RuntimeContext {
             packages: CHashMap::new(),
-            paths: vec![cur_dir],
+            paths: vec![],
         };
         Runtime {
             inner: Arc::new(ctx),
@@ -47,6 +47,10 @@ impl Runtime {
 
     pub fn root_capsule(&self) -> Capsule<'static> {
         Capsule::root(self.context())
+    }
+
+    pub fn capsule_builder<'a>(&self) -> CapsuleBuilder<'a> {
+        CapsuleBuilder::new(self.context())
     }
 
     pub fn execute(&self, path: impl AsRef<Path>) -> Fallible<()> {

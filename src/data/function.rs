@@ -3,6 +3,7 @@ use crate::{
     capsule::Capsule,
     error::Fallible,
     eval::{eval_in_context, Evaluate},
+    // environment::Environment,
 };
 use urashima_ast::expr::{BlockExpression, ExprIndex};
 
@@ -10,7 +11,7 @@ use urashima_ast::expr::{BlockExpression, ExprIndex};
 pub struct Function {
     parameters: Vec<Symbol>,
     body: BlockExpression,
-    // TODO: reimplement closure
+    // environment: Environment,
 }
 
 impl Function {

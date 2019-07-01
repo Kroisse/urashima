@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct FunctionExpression {
@@ -26,7 +26,7 @@ pub struct FunctionExpression {
 }
 
 #[derive(Clone, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Parameter(Symbol);
 
@@ -45,7 +45,11 @@ impl From<&str> for Parameter {
 impl Parse for FunctionExpression {
     const RULE: Rule = Rule::fn_expression;
 
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
         let mut parameters = vec![];
         let mut block: Option<BlockExpression> = None;
         for item in pairs {
@@ -55,7 +59,11 @@ impl Parse for FunctionExpression {
                 }
                 Rule::grouping_brace => {
                     if block.is_none() {
-                        block = Some(BlockExpression::from_pairs(&mut *arena, item.into_inner())?);
+                        block = Some(BlockExpression::from_pairs(
+                            &mut *arena,
+                            item.as_span(),
+                            item.into_inner(),
+                        )?);
                     } else {
                         unreachable!();
                     }

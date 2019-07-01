@@ -1,0 +1,48 @@
+{
+  "name": "urashima-naru-vscode",
+  "version": "0.1.0",
+  "description": "VS Code extension for Naru",
+  "main": "./dist/extension",
+  "repository": "https://github.com/Kroisse/urashima",
+  "author": "Eunchong Yu <kroisse@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "engines": {
+    "vscode": "^1.35.0"
+  },
+  "activationEvents": [
+    "onLanguage:naru"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "Naru",
+      "properties": {
+        "naru.asdf": {
+          "type": "boolean",
+          "default": false,
+          "description": "test"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "naru",
+        "extensions": [
+          ".n"
+        ],
+        "aliases": [
+          "Naru"
+        ]
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.35.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^5.2.1"
+  }
+}

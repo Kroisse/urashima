@@ -5,15 +5,16 @@ use super::{BlockExpression, ExprArena, ExprIndex};
 use crate::{
     error::Fallible,
     parser::{Pairs, Parse, Rule},
+    span::Spanned,
 };
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct IfExpression {
     #[cfg_attr(feature = "deserialize", serde(state))]
-    pub cond: ExprIndex,
+    pub cond: Spanned<ExprIndex>,
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub then_blk: BlockExpression,
     // #[cfg_attr(feature = "deserialize", serde(state))]
@@ -26,7 +27,7 @@ pub struct IfExpression {
 }
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct LoopExpression {
@@ -40,15 +41,25 @@ pub struct LoopExpression {
 impl Parse for IfExpression {
     const RULE: Rule = Rule::if_expression;
 
-    fn from_pairs(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        mut pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
         let cond = Parse::from_pair(arena, pairs.next().expect("unreachable"))?;
         let then_blk = Parse::from_pair(arena, pairs.next().expect("unreachable"))?;
         let else_blk = pairs
             .next()
             .map(|pair| match pair.as_rule() {
-                Rule::if_expression => IfExpression::from_pairs(arena, pair.into_inner())
-                    .map(|expr| BlockExpression::single(expr.into())),
-                Rule::grouping_brace => BlockExpression::from_pairs(arena, pair.into_inner()),
+                Rule::if_expression => {
+                    let span = pair.as_span();
+                    IfExpression::from_pairs(arena, pair.as_span(), pair.into_inner()).map(|expr| {
+                        BlockExpression::single(&span, Spanned::new(&span, expr.into()))
+                    })
+                }
+                Rule::grouping_brace => {
+                    BlockExpression::from_pairs(arena, pair.as_span(), pair.into_inner())
+                }
                 _ => unreachable!(),
             })
             .transpose()?;
@@ -64,7 +75,11 @@ impl Parse for IfExpression {
 impl Parse for LoopExpression {
     const RULE: Rule = Rule::loop_expression;
 
-    fn from_pairs(arena: &mut ExprArena, mut pairs: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        mut pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
         let blk = Parse::from_pair(arena, pairs.next().expect("unreachable"))?;
         Ok(LoopExpression { blk, __opaque: () })
     }

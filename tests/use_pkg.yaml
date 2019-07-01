@@ -1,0 +1,17 @@
+statements:
+- Use:
+    path:
+    - "pkg"
+    - "simplemath"
+    imports:
+    - "add"
+- Expr:
+    Invoke:
+      receiver:
+        Call:
+          callee:
+            Name: "add"
+          arguments:
+          - Integral: 3
+          - Integral: 2
+      method: "println"

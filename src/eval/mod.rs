@@ -2,7 +2,7 @@ mod expr;
 
 use urashima_ast::{
     program::{Binding, PackageDep, PackageProgram, ScriptProgram},
-    statement::Statement,
+    statement::impls::Statement,
 };
 
 use crate::{
@@ -82,6 +82,15 @@ impl Evaluate for Statement {
             Statement::Use(dep) => dep.eval(ctx),
             _ => Err(Error::unimplemented()),
         }
+    }
+}
+
+impl Evaluate for str {
+    type Value = ();
+
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
+        let prog: ScriptProgram = ctx.parse_sourcecode(self)?;
+        prog.eval(ctx)
     }
 }
 

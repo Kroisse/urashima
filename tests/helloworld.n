@@ -1,1 +1,2 @@
-"Hello, world!" println()
+"Hello, world?" println()
+(1 + 2) abs()

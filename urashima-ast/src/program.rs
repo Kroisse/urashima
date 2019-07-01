@@ -13,6 +13,7 @@ use crate::{
     statement::Statement,
 };
 
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct PackageProgram {
@@ -28,7 +29,7 @@ pub struct PackageProgram {
 }
 
 #[derive(Clone, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct PackageDep {
     pub path: PackagePath,
@@ -36,7 +37,7 @@ pub struct PackageDep {
 }
 
 #[derive(Clone)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct Binding {
@@ -45,6 +46,7 @@ pub struct Binding {
     pub value: Expression,
 }
 
+#[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct ScriptProgram {
@@ -55,16 +57,28 @@ pub struct ScriptProgram {
 impl Parse for PackageProgram {
     const RULE: Rule = Rule::package_program;
 
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
         let mut uses = vec![];
         let mut bindings = vec![];
         for item in pairs {
             match item.as_rule() {
                 Rule::use_declaration => {
-                    uses.push(PackageDep::from_pairs(&mut *arena, item.into_inner())?);
+                    uses.push(PackageDep::from_pairs(
+                        &mut *arena,
+                        item.as_span(),
+                        item.into_inner(),
+                    )?);
                 }
                 Rule::binding_statement => {
-                    bindings.push(Binding::from_pairs(&mut *arena, item.into_inner())?);
+                    bindings.push(Binding::from_pairs(
+                        &mut *arena,
+                        item.as_span(),
+                        item.into_inner(),
+                    )?);
                 }
                 Rule::EOI => (),
                 _ => unreachable!(),
@@ -78,7 +92,11 @@ impl Parse for PackageProgram {
 impl Parse for PackageDep {
     const RULE: Rule = Rule::use_declaration;
 
-    fn from_pairs(_arena: &mut ExprArena, p: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        _arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        p: Pairs<'i>,
+    ) -> Fallible<Self> {
         let mut path: Option<PackagePath> = None;
         let mut imports: Vec<Symbol> = vec![];
         for i in p {
@@ -110,7 +128,11 @@ impl Parse for PackageDep {
 impl Parse for Binding {
     const RULE: Rule = Rule::binding_statement;
 
-    fn from_pairs(arena: &mut ExprArena, p: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        p: Pairs<'i>,
+    ) -> Fallible<Self> {
         let mut name: Option<Symbol> = None;
         let mut value: Option<Expression> = None;
         for i in p {
@@ -124,7 +146,11 @@ impl Parse for Binding {
                 }
                 Rule::expression => {
                     if value.is_none() {
-                        value = Some(Expression::from_pairs(&mut *arena, i.into_inner())?);
+                        value = Some(Expression::from_pairs(
+                            &mut *arena,
+                            i.as_span(),
+                            i.into_inner(),
+                        )?);
                     } else {
                         unreachable!();
                     }
@@ -142,12 +168,20 @@ impl Parse for Binding {
 impl Parse for ScriptProgram {
     const RULE: Rule = Rule::script_program;
 
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self> {
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        _span: pest::Span<'i>,
+        pairs: Pairs<'i>,
+    ) -> Fallible<Self> {
         let mut statements = vec![];
         for item in pairs {
             match item.as_rule() {
                 Rule::statement => {
-                    statements.push(Statement::from_pairs(&mut *arena, item.into_inner())?);
+                    statements.push(Statement::from_pairs(
+                        &mut *arena,
+                        item.as_span(),
+                        item.into_inner(),
+                    )?);
                 }
                 Rule::EOI => (),
                 _ => unreachable!(),

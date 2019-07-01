@@ -1,9 +1,9 @@
 use urashima_ast::{
     expr::{
-        CallExpression, ExprArena, ExprIndex, Expression, IfExpression, InvokeExpression,
+        impls::Expression, CallExpression, ExprArena, ExprIndex, IfExpression, InvokeExpression,
         LoopExpression,
     },
-    statement::Statement,
+    statement::impls::Statement,
 };
 
 use super::Instruction;
@@ -43,14 +43,14 @@ impl Translate for Expression {
             Infix(op, left, right) => {
                 left.translate(ctx);
                 right.translate(ctx);
-                ctx.inst.push(Instruction::MethodRef(op.clone()));
+                ctx.inst.push(Instruction::MethodRef(op.node.clone()));
                 ctx.inst.push(Instruction::Invoke(2, 0));
             }
             Call(CallExpression {
                 callee, arguments, ..
             }) => {
                 callee.translate(ctx);
-                for a in arguments {
+                for a in &arguments.node {
                     a.translate(ctx);
                 }
                 ctx.inst.push(Instruction::Call(arguments.len() as u32));
@@ -62,10 +62,10 @@ impl Translate for Expression {
                 ..
             }) => {
                 receiver.translate(ctx);
-                for a in arguments {
+                for a in &arguments.node {
                     a.translate(ctx);
                 }
-                ctx.inst.push(Instruction::MethodRef(method.clone()));
+                ctx.inst.push(Instruction::MethodRef(method.node.clone()));
                 ctx.inst
                     .push(Instruction::Invoke(1, arguments.len() as u32));
             }
@@ -77,12 +77,12 @@ impl Translate for Expression {
             }) => {
                 cond.translate(ctx);
                 ctx.inst.push(Instruction::If);
-                for s in then_blk {
+                for s in &then_blk.node {
                     s.translate(ctx);
                 }
                 if let Some(else_blk) = else_blk {
                     ctx.inst.push(Instruction::Else);
-                    for s in else_blk {
+                    for s in &else_blk.node {
                         s.translate(ctx);
                     }
                 }
@@ -90,7 +90,7 @@ impl Translate for Expression {
             }
             Loop(LoopExpression { blk, .. }) => {
                 ctx.inst.push(Instruction::Loop(None));
-                for s in blk {
+                for s in &blk.node {
                     s.translate(ctx);
                 }
                 ctx.inst.push(Instruction::End);

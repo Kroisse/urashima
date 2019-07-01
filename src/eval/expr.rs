@@ -1,6 +1,9 @@
-use urashima_ast::expr::{
-    BlockExpression, CallExpression, ExprIndex, Expression, FunctionExpression, IfExpression,
-    InvokeExpression, LoopExpression,
+use urashima_ast::{
+    expr::{
+        block::BlockExpression, impls::Expression, CallExpression, ExprIndex, FunctionExpression,
+        IfExpression, InvokeExpression, LoopExpression,
+    },
+    span::Spanned,
 };
 
 use super::Evaluate;
@@ -9,6 +12,17 @@ use crate::{
     data::{symbol, Function, Symbol, Variant},
     error::{ControlFlow, Error, Fallible},
 };
+
+impl<T> Evaluate for Spanned<T>
+where
+    T: Evaluate,
+{
+    type Value = T::Value;
+
+    fn eval(&self, ctx: &mut Capsule<'_>) -> Fallible<Self::Value> {
+        self.node.eval(ctx)
+    }
+}
 
 impl Evaluate for ExprIndex {
     type Value = Variant;
@@ -121,7 +135,7 @@ impl Evaluate for InvokeExpression {
             .iter()
             .map(|i| i.eval(ctx))
             .collect::<Fallible<Vec<_>>>()?;
-        receiver.invoke(ctx, self.method.clone(), &arguments)
+        receiver.invoke(ctx, self.method.node.clone(), &arguments)
     }
 }
 
@@ -138,7 +152,10 @@ pub(crate) fn eval_in_context(expr: &BlockExpression, ctx: &mut Capsule<'_>) -> 
     for stmt in expr.statements() {
         stmt.eval(ctx)?;
     }
-    expr.returns().eval(ctx)
+    match expr.returns() {
+        Some(e) => e.eval(ctx),
+        None => Expression::unit().eval(ctx),
+    }
 }
 
 fn eval_record(ctx: &mut Capsule<'_>, exprs: &[(Symbol, ExprIndex)]) -> Fallible<Variant> {
@@ -165,6 +182,7 @@ impl Evaluate for FunctionExpression {
             ctx,
             self.parameters.iter().map(|i| i.name()).collect(),
             self.body.clone(),
+            // ctx.environment.clone(),
         );
         let idx = ctx.environment.add_function(f);
         Ok(Variant::Fn(idx))

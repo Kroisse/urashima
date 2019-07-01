@@ -25,6 +25,7 @@ mod print;
 pub mod error;
 pub mod expr;
 pub mod program;
+pub mod span;
 pub mod statement;
 
 pub use crate::{

@@ -16,12 +16,16 @@ pub(crate) type Pairs<'a> = pest::iterators::Pairs<'a, Rule>;
 pub trait Parse: Sized {
     const RULE: Rule;
 
-    fn from_pairs(arena: &mut ExprArena, pairs: Pairs<'_>) -> Fallible<Self>;
+    fn from_pairs<'i>(
+        arena: &mut ExprArena,
+        span: pest::Span<'i>,
+        pairs: Pairs<'i>,
+    ) -> Fallible<Self>;
 
     fn from_pair(arena: &mut ExprArena, pair: Pair<'_>) -> Fallible<Self> {
         let rule = pair.as_rule();
         if rule == Self::RULE {
-            Self::from_pairs(arena, pair.into_inner())
+            Self::from_pairs(arena, pair.as_span(), pair.into_inner())
         } else {
             Err(Error::unexpected(Self::RULE, rule))
         }
@@ -41,7 +45,11 @@ pub trait Parse: Sized {
                 }
             }
         }
-        Self::from_pairs(arena, pairs)
+        Self::from_pairs(
+            arena,
+            pest::Span::new(input, 0, input.len()).unwrap(),
+            pairs,
+        )
     }
 }
 
