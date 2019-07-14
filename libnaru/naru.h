@@ -8,12 +8,12 @@
 
 typedef struct NaruRuntime NaruRuntime;
 
-void naru_runtime_delete(NaruRuntime *rt);
+void naru_runtime_dispose(NaruRuntime *rt);
 
 void naru_runtime_execute(NaruRuntime *rt, const char *path);
 
-const Error *naru_runtime_last_error(NaruRuntime *rt);
+void naru_runtime_init(NaruRuntime *rt);
 
-NaruRuntime *naru_runtime_new(void);
+const Error *naru_runtime_last_error(NaruRuntime *rt);
 
 #endif /* _naru__bindings_h_ */

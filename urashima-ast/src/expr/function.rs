@@ -8,8 +8,10 @@ use serde_derive_state::DeserializeState;
 use super::{BlockExpression, ExprArena};
 use crate::{
     error::Fallible,
+    find::Find,
     parser::{Pairs, Parse, Rule},
     print::{self, Print},
+    span::{Position, Span, Spanned},
 };
 
 #[derive(Clone)]
@@ -28,17 +30,13 @@ pub struct FunctionExpression {
 #[derive(Clone, PartialEq)]
 #[cfg_attr(any(feature = "dev", test), derive(Debug))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-pub struct Parameter(Symbol);
+pub struct Parameter {
+    pub name: Spanned<Symbol>,
+}
 
 impl Parameter {
     pub fn name(&self) -> Symbol {
-        self.0.clone()
-    }
-}
-
-impl From<&str> for Parameter {
-    fn from(s: &str) -> Self {
-        Parameter(s.into())
+        self.name.node.clone()
     }
 }
 
@@ -55,7 +53,9 @@ impl Parse for FunctionExpression {
         for item in pairs {
             match item.as_rule() {
                 Rule::fn_param => {
-                    parameters.push(item.as_str().into());
+                    parameters.push(Parameter {
+                        name: Spanned::new(&item.as_span(), item.as_str().into()),
+                    });
                 }
                 Rule::grouping_brace => {
                     if block.is_none() {
@@ -92,7 +92,25 @@ impl<'a> Print for FunctionExpression {
 
 impl<'a> Print for Parameter {
     fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
-        f.write_str(&self.0)
+        f.write_str(&self.name.node)
+    }
+}
+
+impl Find for FunctionExpression {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(FunctionExpression)");
+        self.parameters
+            .binary_search_by(|param| param.name.span.cmp_pos(&pos))
+            .ok()
+            .and_then(|i| self.parameters[i].find_span(pos, arena))
+            .or_else(|| self.body.find_span(pos, arena))
+    }
+}
+
+impl Find for Parameter {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(Parameter)");
+        self.name.span.find_span(pos, arena)
     }
 }
 

@@ -181,7 +181,7 @@ impl Evaluate for FunctionExpression {
         let f = Function::new(
             ctx,
             self.parameters.iter().map(|i| i.name()).collect(),
-            self.body.clone(),
+            self.body.node.clone(),
             // ctx.environment.clone(),
         );
         let idx = ctx.environment.add_function(f);

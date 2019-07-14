@@ -5,7 +5,7 @@ use crate::{
     eval::{eval_in_context, Evaluate},
     // environment::Environment,
 };
-use urashima_ast::expr::{BlockExpression, ExprIndex};
+use urashima_ast::expr::{block::BlockExpression, ExprIndex};
 
 #[derive(Clone)]
 pub struct Function {

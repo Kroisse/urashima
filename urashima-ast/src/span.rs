@@ -1,4 +1,5 @@
-use std::ops::Deref;
+use core::cmp::Ordering;
+use core::ops::Deref;
 
 use crate::{
     error::Fallible,
@@ -7,11 +8,41 @@ use crate::{
     print::{self, Print},
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub struct Position {
     pub line: usize,
     pub column: usize,
-    pub pos: usize,
+    pub pos: Option<usize>,
+}
+
+impl Position {
+    pub fn new(line: usize, column: usize) -> Self {
+        Self {
+            line,
+            column,
+            pos: None,
+        }
+    }
+}
+
+impl PartialEq for Position {
+    fn eq(&self, other: &Position) -> bool {
+        (self.line, self.column).eq(&(other.line, other.column))
+    }
+}
+
+impl Eq for Position {}
+
+impl PartialOrd for Position {
+    fn partial_cmp(&self, other: &Position) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Position {
+    fn cmp(&self, other: &Position) -> Ordering {
+        (self.line, self.column).cmp(&(other.line, other.column))
+    }
 }
 
 impl From<&pest::Position<'_>> for Position {
@@ -20,15 +51,43 @@ impl From<&pest::Position<'_>> for Position {
         Position {
             line,
             column,
-            pos: pos.pos(),
+            pos: Some(pos.pos()),
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Span {
-    pub start: Position,
-    pub end: Position,
+    start: Position,
+    end: Position,
+}
+
+impl Span {
+    pub fn new(start: Position, end: Position) -> Self {
+        assert!(start <= end);
+        Self { start, end }
+    }
+
+    pub fn enclosing(start: Span, end: Span) -> Self {
+        Self::new(start.start(), end.end())
+    }
+
+    pub fn start(&self) -> Position { self.start }
+    pub fn end(&self) -> Position { self.end }
+
+    pub fn cmp_pos(&self, pos: &Position) -> Ordering {
+        use Ordering::*;
+        match (self.start.cmp(&pos), self.end.cmp(&pos)) {
+            (Less, Less) => Less,
+            (Less, Equal) | (Equal, Equal) | (Less, Greater) | (Equal, Greater) => Equal,
+            (Greater, Greater) => Greater,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn contains(&self, pos: Position) -> bool {
+        self.start <= pos && pos <= self.end
+    }
 }
 
 impl From<&pest::Span<'_>> for Span {
@@ -86,5 +145,23 @@ where
 {
     fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
         Print::fmt(&self.node, f)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn span_cmp_pos() {
+        let span = Span::new(Position::new(2, 10), Position::new(2, 16));
+        assert_eq!(span.cmp_pos(&Position::new(1, 1)), Ordering::Greater);
+        assert_eq!(span.cmp_pos(&Position::new(1, 15)), Ordering::Greater);
+        assert_eq!(span.cmp_pos(&Position::new(2, 9)), Ordering::Greater);
+        assert_eq!(span.cmp_pos(&Position::new(2, 10)), Ordering::Equal);
+        assert_eq!(span.cmp_pos(&Position::new(2, 11)), Ordering::Equal);
+        assert_eq!(span.cmp_pos(&Position::new(2, 16)), Ordering::Equal);
+        assert_eq!(span.cmp_pos(&Position::new(2, 17)), Ordering::Less);
+        assert_eq!(span.cmp_pos(&Position::new(3, 1)), Ordering::Less);
     }
 }

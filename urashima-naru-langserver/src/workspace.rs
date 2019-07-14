@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::sync::{atomic::AtomicBool, Arc};
 
 use bytes::Bytes;
+use chashmap::CHashMap;
 use failure::Fallible;
 use futures::{channel::mpsc, select};
 use lazy_static::lazy_static;
@@ -11,29 +12,42 @@ use tokio::{
     net::TcpStream,
 };
 use urashima::Runtime;
-use urashima_ast::program::ScriptProgram;
+use urashima_ast::{
+    expr::ExprArena,
+    program::ScriptProgram,
+    span::{Position, Span},
+    Find,
+};
 
 use crate::{
     codec::Codec,
     command::{Command, Mailbox},
     handler::Handler,
     prelude::*,
+    TaskExecutor,
 };
 
 pub(crate) type Writer = Compat01As03Sink<FramedWrite<WriteHalf<TcpStream>, Codec>, Bytes>;
 
 pub(crate) struct Workspace {
-    rt: Runtime,
-    sources: HashMap<Url, Source>,
     handler: Handler,
     buf: Vec<u8>,
-    mailbox: Mailbox,
     writer: Writer,
+    state: Arc<WorkspaceState>,
+    executor: TaskExecutor,
+}
+
+pub(crate) struct WorkspaceState {
+    pub initialized: AtomicBool,
+    pub rt: Runtime,
+    pub sources: CHashMap<Url, Source>,
+    mailbox: Mailbox,
 }
 
 #[derive(Debug)]
-struct Source {
+pub(crate) struct Source {
     version: u64,
+    arena: ExprArena,
     ast: Option<ScriptProgram>,
     text: String,
 }
@@ -43,25 +57,30 @@ lazy_static! {
 }
 
 impl Workspace {
-    pub fn new(writer: Writer, mailbox: Mailbox) -> Self {
+    pub fn new(writer: Writer, mailbox: Mailbox, executor: TaskExecutor) -> Self {
+        let state = WorkspaceState {
+            initialized: AtomicBool::new(false),
+            rt: Runtime::new(),
+            sources: CHashMap::new(),
+            mailbox,
+        };
         Workspace {
-            rt: Runtime::default(),
-            sources: HashMap::new(),
             handler: DEFAULT_HANDLER.clone(),
             buf: Vec::new(),
-            mailbox,
             writer,
+            state: Arc::new(state),
+            executor,
         }
     }
 
-    pub async fn serve(stream: TcpStream) -> Fallible<()> {
+    pub async fn serve(stream: TcpStream, executor: TaskExecutor) -> Fallible<()> {
         log::debug!("Listen!");
         let (reader, writer) = stream.split();
         let mut reader = FramedRead::new(reader, Codec::default()).compat().fuse();
         let writer = FramedWrite::new(writer, Codec::default()).sink_compat();
         let (tx, mut rx) = mpsc::channel(8);
         let mailbox = Mailbox::new(tx.clone());
-        let mut workspace = Workspace::new(writer, mailbox);
+        let mut workspace = Workspace::new(writer, mailbox, executor);
         'outer: loop {
             select! {
                 x = reader.try_next() => if let Some(request) = x? {
@@ -80,7 +99,7 @@ impl Workspace {
     async fn handle_request<'a>(&'a mut self, request: &'a str) -> Fallible<()> {
         if let Some(response) = self
             .handler
-            .handle_request(self.mailbox.clone(), request)
+            .handle_request(Arc::clone(&self.state), request)
             .await
         {
             self.send_message(&response).await?;
@@ -92,7 +111,7 @@ impl Workspace {
         use Command::*;
         match command {
             Initialize => {
-                self.mailbox.initialized = true;
+                // self.mailbox.initialized = true;
             }
             LogMessage(msg) => {
                 self.notify::<lsp_notification!("window/logMessage")>(msg)
@@ -103,11 +122,18 @@ impl Workspace {
                 version,
                 changes,
             } => {
-                if let Err(e) = self.apply_file_changes(uri, version, changes) {
-                    self.mailbox
-                        .log_message(MessageType::Warning, e.to_string())
-                        .await;
-                }
+                // if let Err(e) = self.apply_file_changes(uri, version, changes) {
+                // self.mailbox
+                //     .log_message(MessageType::Warning, e.to_string())
+                //     .await;
+                // }
+            }
+            DocumentHighlight {
+                uri,
+                position,
+                reply,
+            } => {
+                // let _ = reply.send(self.find_span(uri, position));
             }
         }
         Ok(())
@@ -136,45 +162,58 @@ impl Workspace {
         self.writer.send(Bytes::from(&self.buf[..])).await?;
         Ok(())
     }
+}
 
-    fn apply_file_changes(
-        &mut self,
+impl WorkspaceState {
+    pub async fn log_message(&self, typ: MessageType, msg: impl Into<String>) {
+        let mut mailbox = self.mailbox.clone();
+        mailbox.log_message(typ, msg).await;
+    }
+
+    pub fn apply_file_changes(
+        &self,
         uri: Url,
         version: Option<u64>,
         changes: Vec<TextDocumentContentChangeEvent>,
     ) -> urashima::Fallible<()> {
-        use std::collections::hash_map::Entry;
-        let entry = match self.sources.entry(uri.clone()) {
-            Entry::Occupied(e) => {
-                let e = e.into_mut();
+        let mut result = Ok(());
+        self.sources.alter(uri.clone(), |entry| {
+            let mut entry = if let Some(mut e) = entry {
                 if let Some(v) = version {
                     if v <= e.version {
-                        return Ok(());
+                        return Some(e);
                     }
                     e.version = v;
                 }
-                for i in changes {
-                    e.text = i.text;
-                }
                 e
-            }
-            Entry::Vacant(e) => {
-                let mut text = String::new();
-                for i in changes {
-                    text = i.text;
-                }
-                e.insert(Source {
+            } else {
+                let text = String::new();
+                Source {
                     version: version.unwrap_or(0),
+                    arena: ExprArena::new(),
                     ast: None,
                     text,
-                })
+                }
+            };
+            for i in changes {
+                entry.text = i.text;
             }
-        };
-        let mut cap = self.rt.root_capsule();
-        let ast = cap.parse_sourcecode::<ScriptProgram>(&entry.text)?;
-        entry.ast = Some(ast);
-        log::debug!("[{}] {:#?}", uri, entry);
-        Ok(())
+            match urashima_ast::parse(&mut entry.arena, &entry.text) {
+                Ok(ast) => {
+                    entry.ast = Some(ast);
+                }
+                Err(e) => {
+                    result = Err(e.into());
+                }
+            }
+            Some(entry)
+        });
+        result
+    }
+
+    pub fn find_span(&self, uri: Url, pos: Position) -> Option<Span> {
+        let src = self.sources.get(&uri)?;
+        dbg!(src.ast.as_ref()?.find_span(pos, &src.arena))
     }
 }
 

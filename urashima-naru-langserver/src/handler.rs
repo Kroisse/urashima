@@ -1,18 +1,21 @@
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::sync::{Arc, atomic::Ordering};
 
-use futures::future::BoxFuture;
+use futures::{channel::oneshot, future::BoxFuture};
 use jsonrpc_core::{
-    Compatibility, MetaIoHandler, Metadata, Response, RpcMethod, RpcNotification, Value,
+    Compatibility, Error, ErrorCode, MetaIoHandler, Metadata, Response, RpcMethod, RpcNotification,
+    Value,
 };
-use lsp_types::TextDocumentContentChangeEvent;
+use lsp_types::{DocumentHighlight, Position, Range, TextDocumentContentChangeEvent};
+use urashima_ast::span::Position as AstPosition;
 
 use crate::{
     command::{Command, Mailbox},
     prelude::*,
+    workspace::WorkspaceState,
 };
 
-type IoHandler = MetaIoHandler<Mailbox, inspect::Inspect>;
+type IoHandler = MetaIoHandler<Arc<WorkspaceState>, inspect::Inspect>;
 
 #[derive(Clone)]
 pub(crate) struct Handler {
@@ -31,7 +34,7 @@ impl Handler {
         }
     }
 
-    pub async fn handle_request(&self, m: Mailbox, req: impl AsRef<[u8]>) -> Option<Response> {
+    pub async fn handle_request(&self, m: Arc<WorkspaceState>, req: impl AsRef<[u8]>) -> Option<Response> {
         let req: jsonrpc_core::Request = match serde_json::from_slice(req.as_ref()) {
             Ok(v) => v,
             Err(_) => {
@@ -112,7 +115,7 @@ trait Noti<T: LspNotification> {
 
 macro_rules! impl_requests {
     (@impl_req $method:tt ($self:ident, $params:ident) $body:block) => {
-        impl Req<lsp_request!($method)> for Mailbox {
+        impl Req<lsp_request!($method)> for Arc<WorkspaceState> {
             fn call(
                 &mut $self,
                 $params: <lsp_request!($method) as LspRequest>::Params,
@@ -142,7 +145,7 @@ macro_rules! impl_requests {
 
 macro_rules! impl_notifications {
     (@impl_noti $method:tt ($self:ident, $params:ident) $body:block) => {
-        impl Noti<lsp_notification!($method)> for Mailbox {
+        impl Noti<lsp_notification!($method)> for Arc<WorkspaceState> {
             fn call(
                 &mut $self,
                 $params: <lsp_notification!($method) as LspNotification>::Params,
@@ -173,7 +176,7 @@ macro_rules! impl_notifications {
 impl_requests! {
 
     "initialize"(self, params) {
-        self.send(Command::Initialize).await;
+        self.initialized.store(true, Ordering::Relaxed);
         let capabilities = params.capabilities;
         let text_document_sync = Some(lsp_types::TextDocumentSyncCapability::Kind(lsp_types::TextDocumentSyncKind::Full));
         let workspace = Some(lsp_types::WorkspaceCapability {
@@ -193,7 +196,16 @@ impl_requests! {
     }
 
     "textDocument/documentHighlight"(self, params) {
-        Ok(None)
+        log::debug!("{:?}", params);
+        let pos = params.position;
+        let position = AstPosition::new(pos.line as usize + 1, pos.character as usize + 1);
+        let res = self.find_span(params.text_document.uri, position);
+        Ok(res.map(|s| vec![
+            DocumentHighlight {
+                range: Range::new(Position::new(s.start().line as u64 - 1, s.start().column as u64 - 1), Position::new(s.end().line as u64 - 1, s.end().column as u64 - 1)),
+                kind: None,
+            }
+        ]))
     }
 
 }
@@ -210,20 +222,12 @@ impl_notifications! {
 
     "textDocument/didOpen"(self, params) {
         let doc = params.text_document;
-        self.send(Command::FileChanged{
-            uri: doc.uri,
-            version: Some(doc.version),
-            changes: vec![ TextDocumentContentChangeEvent { text: doc.text, range: None, range_length: None }]
-        }).await;
+        self.apply_file_changes(doc.uri, Some(doc.version), vec![ TextDocumentContentChangeEvent { text: doc.text, range: None, range_length: None }]);
     }
 
     "textDocument/didChange"(self, params) {
         let doc = params.text_document;
-        self.send(Command::FileChanged{
-            uri: doc.uri,
-            version: doc.version,
-            changes: params.content_changes,
-        }).await;
+        self.apply_file_changes(doc.uri, doc.version, params.content_changes);
     }
 }
 

@@ -1,6 +1,6 @@
-use std::fmt::{self, Display};
-use std::iter::FromIterator;
-use std::slice;
+use core::fmt::{self, Display};
+use core::iter::FromIterator;
+use core::slice;
 
 use smallvec::SmallVec;
 

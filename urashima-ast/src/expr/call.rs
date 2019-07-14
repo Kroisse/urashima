@@ -1,9 +1,10 @@
 use urashima_util::Symbol;
 
-use super::ExprIndex;
+use super::{ExprArena, ExprIndex};
 use crate::{
     print::{self, Print},
-    span::Spanned,
+    find::Find,
+    span::{Position, Span, Spanned},
 };
 
 #[cfg(feature = "deserialize")]
@@ -86,5 +87,33 @@ impl Print for InvokeExpression {
             self.method.node,
             f.display_seq(&self.arguments[..], ", "),
         )
+    }
+}
+
+impl Find for CallExpression {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(CallExpression)");
+        self.callee.find_span(pos, arena).or_else(|| {
+            self.arguments.span.find_span(pos, arena)?;
+            let i = self.arguments.node.binary_search_by(|idx| {
+                arena[*idx].span.cmp_pos(&pos)
+            }).ok()?;
+            self.arguments.node[i].find_span(pos, arena)
+        })
+    }
+}
+
+impl Find for InvokeExpression {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(InvokeExpression)");
+        self.method.span.find_span(pos, arena).or_else(|| {
+            self.receiver.find_span(pos, arena)
+        }).or_else(|| {
+            self.arguments.span.find_span(pos, arena)?;
+            let i = self.arguments.node.binary_search_by(|idx| {
+                arena[*idx].span.cmp_pos(&pos)
+            }).ok()?;
+            self.arguments.node[i].find_span(pos, arena)
+        })
     }
 }

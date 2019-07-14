@@ -1,12 +1,12 @@
-use std::cell::RefCell;
-use std::fmt;
+use core::cell::RefCell;
+use core::fmt;
 use std::rc::Rc;
 
 use crate::expr::{ExprArena, ExprIndex, Expression};
 
-pub use std::fmt::{Error, Write};
+pub use core::fmt::{Error, Write};
 
-pub type Result<T = ()> = std::result::Result<T, Error>;
+pub type Result<T = ()> = core::result::Result<T, Error>;
 
 pub struct Formatter<'a> {
     inner: &'a mut fmt::Formatter<'a>,
@@ -26,7 +26,7 @@ impl<'a> Formatter<'a> {
         state: Rc<RefCell<State>>,
     ) -> Self {
         let inner = unsafe {
-            std::mem::transmute::<&'a mut fmt::Formatter<'b>, &'a mut fmt::Formatter<'a>>(f)
+            core::mem::transmute::<&'a mut fmt::Formatter<'b>, &'a mut fmt::Formatter<'a>>(f)
         };
         Formatter {
             inner,
@@ -39,7 +39,7 @@ impl<'a> Formatter<'a> {
         let mut st = self.state.borrow_mut();
         if st.start {
             st.start = false;
-            for _ in dbg!(0..st.indent) {
+            for _ in 0..st.indent {
                 self.inner.write_str("    ")?;
             }
         }

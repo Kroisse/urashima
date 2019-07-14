@@ -76,7 +76,7 @@ decimal_digit = @{ ASCII_DIGIT }
 literal = _{ boolean | string_literal | numeric }
 boolean = { KEYWORD_FALSE | KEYWORD_TRUE }
 numeric = @{ "0" | (ASCII_NONZERO_DIGIT ~ (ASCII_DIGIT)* ~ ( "." ~ ASCII_DIGIT )?) }
-string_literal = _{ PUSH("\"" | "'") ~ string ~ POP }
+string_literal = _{ PUSH(STRING_QUOTE) ~ string ~ POP }
 string = @{ (!(NEWLINE | PEEK) ~ ANY)* }
 
 operator = _{
@@ -102,14 +102,14 @@ KEYWORD_CONTINUE = _{ "continue" }
 KEYWORD_ELSE = _{ "else" }
 KEYWORD_FALSE = _{ "false" }
 KEYWORD_FN = _{ "fn" }
-KEYWORD_IF = _{ "if" }
-KEYWORD_LOOP = _{ "loop" }
-KEYWORD_RETURN = _{ "return" }
+KEYWORD_IF = { "if" }
+KEYWORD_LOOP = { "loop" }
+KEYWORD_RETURN = { "return" }
 KEYWORD_TRUE = _{ "true" }
 KEYWORD_USE = _{ "use" }
 KEYWORD = @{ KEYWORD_BREAK | KEYWORD_CONTINUE | KEYWORD_FALSE | KEYWORD_FN | KEYWORD_RETURN | KEYWORD_TRUE | KEYWORD_USE }
 
-OPERATOR_BIND = _{ ":=" }
+OPERATOR_BIND = { ":=" }
 
 IDENTIFIER = @{ name_start ~ ( name_start | decimal_digit )* }
 
@@ -118,5 +118,6 @@ SEP = _{ NEWLINE | SEMICOLON }
 COMMA = _{ "," }
 SEMICOLON = _{ ";" }
 LINE_COMMENT_START = _{ "--" }
+STRING_QUOTE = _{ "\"" | "'" }
 QUOTE = _{ "`" }
 PUNCT = _{ "!" | "#" | "$" | "%" | "&" | "*" | "+" | "," | "-" | "." | "/" | ":" | "<" | "=" | ">" | "?" | "@" | "\\" | "^" | "|" | "~" }

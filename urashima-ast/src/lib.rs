@@ -19,6 +19,7 @@
 #[macro_use]
 mod testutils;
 
+mod find;
 mod parser;
 mod print;
 
@@ -31,4 +32,5 @@ pub mod statement;
 pub use crate::{
     parser::{parse, Parse},
     print::Print,
+    find::Find,
 };

@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use failure::{Backtrace, Context, Fail};
 use urashima_util::Symbol;
@@ -90,8 +90,8 @@ impl<R: pest::RuleType> From<pest::error::Error<R>> for Error {
     }
 }
 
-impl From<std::num::ParseIntError> for Error {
-    fn from(err: std::num::ParseIntError) -> Self {
+impl From<core::num::ParseIntError> for Error {
+    fn from(err: core::num::ParseIntError) -> Self {
         ErrorKind::Parse(err.to_string()).into()
     }
 }

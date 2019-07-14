@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use serde_state::de::{Deserialize, DeserializeState, Deserializer, SeqAccess, Visitor};
 use smallvec::SmallVec;

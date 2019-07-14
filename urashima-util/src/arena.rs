@@ -1,5 +1,5 @@
-use std::marker::PhantomData;
-use std::ops;
+use core::marker::PhantomData;
+use core::ops;
 
 #[derive(Clone, Debug)]
 pub struct Arena<T>(generational_arena::Arena<T>);
@@ -84,7 +84,7 @@ impl<T> Index<T> {
 
 #[cfg(test)]
 mod test {
-    use std::mem;
+    use core::mem;
 
     use super::*;
 

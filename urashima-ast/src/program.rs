@@ -8,8 +8,10 @@ use serde_derive_state::DeserializeState;
 use crate::{
     error::Fallible,
     expr::{ExprArena, Expression},
+    find::Find,
     parser::{Pairs, Parse, Rule},
     print::{self, Print},
+    span::{Position, Span, Spanned},
     statement::Statement,
 };
 
@@ -41,7 +43,9 @@ pub struct PackageDep {
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct Binding {
-    pub name: Symbol,
+    pub name: Spanned<Symbol>,
+    #[cfg_attr(feature = "deserialize", serde(skip))]
+    bind_op: Span,
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub value: Expression,
 }
@@ -133,13 +137,21 @@ impl Parse for Binding {
         _span: pest::Span<'i>,
         p: Pairs<'i>,
     ) -> Fallible<Self> {
-        let mut name: Option<Symbol> = None;
+        let mut name: Option<Spanned<Symbol>> = None;
+        let mut bind_op = None;
         let mut value: Option<Expression> = None;
         for i in p {
             match i.as_rule() {
                 Rule::name => {
                     if name.is_none() {
-                        name = Some(i.as_str().into());
+                        name = Some(Spanned::new(&i.as_span(), i.as_str().into()));
+                    } else {
+                        unreachable!();
+                    }
+                }
+                Rule::OPERATOR_BIND => {
+                    if bind_op.is_none() {
+                        bind_op = Some(Span::from(&i.as_span()));
                     } else {
                         unreachable!();
                     }
@@ -160,6 +172,7 @@ impl Parse for Binding {
         }
         Ok(Binding {
             name: name.expect("unreachable"),
+            bind_op: bind_op.expect("unreachable"),
             value: value.expect("unreachable"),
         })
     }
@@ -194,7 +207,7 @@ impl Parse for ScriptProgram {
 
 impl Print for Binding {
     fn fmt(&self, f: &mut print::Formatter<'_>) -> print::Result {
-        write!(f, "{} := ", self.name)?;
+        write!(f, "{} := ", self.name.node)?;
         Print::fmt(&self.value, f)
     }
 }
@@ -209,10 +222,31 @@ impl Print for ScriptProgram {
     }
 }
 
+impl Find for Binding {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(Binding): {:?}", pos);
+        self.bind_op
+            .find_span(pos, arena)
+            .or_else(|| self.name.span.find_span(pos, arena))
+            .or_else(|| self.value.find_span(pos, arena))
+    }
+}
+
+impl Find for ScriptProgram {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(ScriptProgram): {:?}", pos);
+        let i = self
+            .statements
+            .binary_search_by(|s| s.span.cmp_pos(&pos))
+            .ok()?;
+        self.statements[i].find_span(pos, arena)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{expr::Expression, print::Print};
+    use crate::{expr::impls::Expression, print::Print};
 
     #[test]
     fn basic() {
@@ -253,7 +287,7 @@ baz := fn {
             vec!["foo", "bar", "baz"],
         );
         let expr = &parse_result.bindings[0].value;
-        match expr {
+        match &expr.node {
             Expression::Infix(..) => {}
             _ => {
                 panic!("{:?}", expr);

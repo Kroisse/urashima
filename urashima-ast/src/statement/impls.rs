@@ -7,6 +7,7 @@ use crate::{
     parser::{ensure_single, Pairs, Parse, Rule},
     print::{self, Print},
     program::{Binding, PackageDep},
+    span::Span,
 };
 
 #[derive(Clone)]
@@ -16,7 +17,7 @@ use crate::{
 pub enum Statement {
     Binding(#[cfg_attr(feature = "deserialize", serde(state))] Binding),
     Expr(#[cfg_attr(feature = "deserialize", serde(state))] Expression),
-    Return(#[cfg_attr(feature = "deserialize", serde(state))] Expression),
+    Return(Span, #[cfg_attr(feature = "deserialize", serde(state))] Expression),
     Break,
     Continue,
     Use(PackageDep),
@@ -35,14 +36,14 @@ impl Parse for Statement {
             Rule::break_statement => Ok(Statement::Break),
             Rule::continue_statement => Ok(Statement::Continue),
             Rule::return_statement => {
-                let expr = if let Some(ret) = item.into_inner().next() {
+                let mut pairs = item.into_inner();
+                let keyword = Span::from(&pairs.next().expect("unreachable").as_span());
+                let expr = if let Some(ret) = pairs.next() {
                     Expression::from_pair(&mut *arena, ret)?
                 } else {
-                    Expression::unit(
-                        &pest::Span::new(span.as_str(), span.end(), span.end()).unwrap(),
-                    )
+                    Expression::unit(Span::new(keyword.end(), keyword.end()))
                 };
-                Ok(Statement::Return(expr))
+                Ok(Statement::Return(keyword, expr))
             }
             Rule::binding_statement => {
                 let binding = Binding::from_pairs(&mut *arena, item.as_span(), item.into_inner())?;
@@ -64,7 +65,7 @@ impl Print for Statement {
         match self {
             Binding(b) => Print::fmt(b, f),
             Expr(expr) => Print::fmt(expr, f),
-            Return(expr) => write!(f, "return {}", f.display(expr)),
+            Return(_, expr) => write!(f, "return {}", f.display(expr)),
             Break => f.write_str("break"),
             Continue => f.write_str("continue"),
             Use(..) => unimplemented!(),
@@ -75,7 +76,10 @@ impl Print for Statement {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::expr::{ExprArena, InvokeExpression};
+    use crate::{
+        expr::{impls::Expression, ExprArena, InvokeExpression},
+        span::Spanned,
+    };
 
     #[test]
     fn break_simple() {
@@ -100,7 +104,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "return\n").unwrap(),
-            Statement::Return(Expression::Record(rec)) => { assert_eq!(rec.len(), 0); }
+            Statement::Return(_, Spanned { node: Expression::Record(rec), .. }) => { assert_eq!(rec.len(), 0); }
         );
     }
 
@@ -109,7 +113,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "return 42\n").unwrap(),
-            Statement::Return(Expression::Integral(42)) => { }
+            Statement::Return(_, Spanned { node: Expression::Integral(42), .. }) => { }
         );
     }
 
@@ -118,8 +122,8 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "foo := 42\n").unwrap(),
-            Statement::Binding(Binding { name, value: Expression::Integral(42) }) => {
-                assert_eq!(&name, "foo");
+            Statement::Binding(Binding { name, value: Spanned { node: Expression::Integral(42), .. }, .. }) => {
+                assert_eq!(&name.node, "foo");
             }
         );
     }
@@ -132,8 +136,8 @@ mod test {
                 "Hello, world!" println()
             }
             "#).unwrap(),
-            Statement::Binding(Binding { name, value: Expression::Fn(_) }) => {
-                assert_eq!(&name, "hello");
+            Statement::Binding(Binding { name, value: Spanned { node: Expression::Fn(_), ..}, .. }) => {
+                assert_eq!(&name.node, "hello");
             }
         );
     }
@@ -143,8 +147,8 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Statement::from_str(&mut arena, "42 println()\n").unwrap(),
-            Statement::Expr(Expression::Invoke(InvokeExpression { method, .. })) => {
-                assert_eq!(&method, "println");
+            Statement::Expr(Spanned { node: Expression::Invoke(InvokeExpression { method, .. }), .. }) => {
+                assert_eq!(&method.node, "println");
             }
         );
     }

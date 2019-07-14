@@ -67,7 +67,7 @@ impl Error {
         ErrorKind::Import(path.clone()).into()
     }
 
-    pub(crate) fn load(path: impl Into<PathBuf>) -> Error {
+    pub fn load(path: impl Into<PathBuf>) -> Error {
         ErrorKind::Load(path.into()).into()
     }
 

@@ -8,13 +8,13 @@ edition = "2018"
 deserialize = ["serde", "serde_state", "num-bigint/serde"]
 
 [dependencies]
-generational-arena = "0.2"
+generational-arena = { version = "0.2", default-features = false }
 num-bigint = "0.2"
 num-traits = "0.2"
-serde = { version = "1.0.91", optional = true }
-serde_state = { version = "0.4", optional = true }
+serde = { version = "1.0.91", default-features = false, optional = true }
+serde_state = { version = "0.4", default-features = false, optional = true }
 smallvec = "0.6"
-string_cache = "0.7"
+string_cache = { version = "0.7", default-features = false }
 
 [build-dependencies]
 string_cache_codegen = "0.4"

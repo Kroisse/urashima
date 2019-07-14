@@ -1,6 +1,7 @@
-use futures::{channel::mpsc, prelude::*};
+use futures::{channel::{mpsc, oneshot}, prelude::*};
 use jsonrpc_core::Metadata;
 use lsp_types::{LogMessageParams, MessageType, TextDocumentContentChangeEvent, Url};
+use urashima_ast::span::{Span, Position};
 
 use crate::prelude::*;
 
@@ -46,6 +47,11 @@ pub(crate) enum Command {
         uri: Url,
         version: Option<u64>,
         changes: Vec<TextDocumentContentChangeEvent>,
+    },
+    DocumentHighlight {
+        uri: Url,
+        position: Position,
+        reply: oneshot::Sender<Option<Span>>,
     },
     LogMessage(LogMessageParams),
 }

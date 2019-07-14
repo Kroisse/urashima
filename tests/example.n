@@ -1,0 +1,6 @@
+main := fn {
+    if 1 < 2 {
+        "Hello?" println()
+    }
+    return
+}

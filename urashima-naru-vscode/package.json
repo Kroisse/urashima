@@ -11,7 +11,7 @@
     "watch": "tsc -w"
   },
   "engines": {
-    "vscode": "^1.35.0"
+    "vscode": "^1.36.0"
   },
   "activationEvents": [
     "onLanguage:naru"
@@ -37,10 +37,17 @@
           "Naru"
         ]
       }
+    ],
+    "grammars": [
+      {
+        "language": "naru",
+        "scopeName": "source.naru",
+        "path": "./syntaxes/naru.tmGrammar.json"
+      }
     ]
   },
   "devDependencies": {
-    "@types/vscode": "^1.35.0"
+    "@types/vscode": "^1.36.0"
   },
   "dependencies": {
     "vscode-languageclient": "^5.2.1"

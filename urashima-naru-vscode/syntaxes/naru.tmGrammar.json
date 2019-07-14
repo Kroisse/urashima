@@ -1,0 +1,95 @@
+{
+    "scopeName": "source.naru",
+    "patterns": [
+        {
+            "include": "#statement"
+        }
+    ],
+    "repository": {
+        "statement": {
+            "patterns": [
+                {
+                    "include": "#binding"
+                },
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
+        "binding": {
+            "match": "(\\w+)\\s*(:=)",
+            "captures": {
+                "1": {
+                    "name": "variable.other"
+                },
+                "2": {
+                    "name": "keyword.operator"
+                }
+            }
+        },
+        "expression": {
+            "patterns": [
+                {
+                    "include": "#keyword"
+                },
+                {
+                    "include": "#keyword-control"
+                },
+                {
+                    "include": "#grouping-paren"
+                },
+                {
+                    "include": "#grouping-brace"
+                }
+            ]
+        },
+        "keyword": {
+            "match": "fn",
+            "name": "keyword.other"
+        },
+        "keyword-control": {
+            "match": "if|loop|switch",
+            "name": "keyword.control"
+        },
+        "grouping-paren": {
+            "begin": "\\(",
+            "end": "\\)",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.paren.open"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.paren.close"
+                }
+            },
+            "name": "expression.group",
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
+        "grouping-brace": {
+            "begin": "\\{",
+            "end": "\\}",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.paren.open"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.paren.close"
+                }
+            },
+            "name": "expression.group",
+            "patterns": [
+                {
+                    "include": "#statement"
+                }
+            ]
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use aho_corasick::AhoCorasick;
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
 use bytes::{BufMut, Bytes, BytesMut};
 use failure::Error;
 use lazy_static::lazy_static;
@@ -23,8 +23,12 @@ pub(crate) struct Codec {
     state: State,
 }
 
+const EOL_BYTES: &[&[u8]] = &[b"\r\n", b"\r", b"\n"];
+
 lazy_static! {
-    static ref NEWLINE: AhoCorasick = AhoCorasick::new_auto_configured(&[&b"\r\n"]);
+    static ref EOL: AhoCorasick = AhoCorasickBuilder::new()
+        .match_kind(aho_corasick::MatchKind::LeftmostLongest)
+        .build(EOL_BYTES);
 }
 
 impl Decoder for Codec {
@@ -35,7 +39,7 @@ impl Decoder for Codec {
         loop {
             match self.state {
                 State::Header { len } => {
-                    let buf = if let Some(m) = NEWLINE.find(&src) {
+                    let buf = if let Some(m) = EOL.find(&src) {
                         src.split_to(m.end())
                     } else {
                         return Ok(None);

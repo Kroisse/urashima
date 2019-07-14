@@ -4,7 +4,7 @@ include!(concat!(env!("OUT_DIR"), "/symbol.rs"));
 
 #[cfg(test)]
 mod test {
-    use std::mem;
+    use core::mem;
 
     use super::Symbol;
 

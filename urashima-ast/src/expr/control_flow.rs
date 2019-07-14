@@ -4,8 +4,9 @@ use serde_derive_state::DeserializeState;
 use super::{BlockExpression, ExprArena, ExprIndex};
 use crate::{
     error::Fallible,
+    find::Find,
     parser::{Pairs, Parse, Rule},
-    span::Spanned,
+    span::{Position, Span, Spanned},
 };
 
 #[derive(Clone)]
@@ -13,6 +14,8 @@ use crate::{
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct IfExpression {
+    #[cfg_attr(feature = "deserialize", serde(skip))]
+    if_keyword: Span,
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub cond: Spanned<ExprIndex>,
     #[cfg_attr(feature = "deserialize", serde(state))]
@@ -21,9 +24,6 @@ pub struct IfExpression {
     // pub elseif: Vec<(ExprIndex, BlockExpression)>,
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub else_blk: Option<BlockExpression>,
-
-    #[cfg_attr(feature = "deserialize", serde(skip))]
-    __opaque: (),
 }
 
 #[derive(Clone)]
@@ -31,11 +31,10 @@ pub struct IfExpression {
 #[cfg_attr(feature = "deserialize", derive(DeserializeState))]
 #[cfg_attr(feature = "deserialize", serde(deserialize_state = "ExprArena"))]
 pub struct LoopExpression {
+    #[cfg_attr(feature = "deserialize", serde(skip))]
+    loop_keyword: Span,
     #[cfg_attr(feature = "deserialize", serde(state))]
     pub blk: BlockExpression,
-
-    #[cfg_attr(feature = "deserialize", serde(skip))]
-    __opaque: (),
 }
 
 impl Parse for IfExpression {
@@ -46,6 +45,7 @@ impl Parse for IfExpression {
         _span: pest::Span<'i>,
         mut pairs: Pairs<'i>,
     ) -> Fallible<Self> {
+        let if_keyword = Span::from(&pairs.next().expect("unreachable").as_span());
         let cond = Parse::from_pair(arena, pairs.next().expect("unreachable"))?;
         let then_blk = Parse::from_pair(arena, pairs.next().expect("unreachable"))?;
         let else_blk = pairs
@@ -64,10 +64,10 @@ impl Parse for IfExpression {
             })
             .transpose()?;
         Ok(IfExpression {
+            if_keyword,
             cond,
             then_blk,
             else_blk,
-            __opaque: (),
         })
     }
 }
@@ -80,22 +80,41 @@ impl Parse for LoopExpression {
         _span: pest::Span<'i>,
         mut pairs: Pairs<'i>,
     ) -> Fallible<Self> {
+        let loop_keyword = Span::from(&pairs.next().expect("unreachable").as_span());
         let blk = Parse::from_pair(arena, pairs.next().expect("unreachable"))?;
-        Ok(LoopExpression { blk, __opaque: () })
+        Ok(LoopExpression { loop_keyword, blk })
+    }
+}
+
+impl Find for IfExpression {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(IfExpression)");
+        self.if_keyword
+            .find_span(pos, arena)
+            .or_else(|| self.cond.find_span(pos, arena))
+            .or_else(|| self.then_blk.find_span(pos, arena))
+            .or_else(|| self.else_blk.as_ref().and_then(|e| e.find_span(pos, arena)))
+    }
+}
+
+impl Find for LoopExpression {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(LoopExpression)");
+        self.blk.find_span(pos, arena)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::expr::Expression;
+    use crate::expr::{impls::Expression::*, Expression};
 
     #[test]
     fn if_simple_1() {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, r#"if true { 42 }"#).unwrap(),
-            Expression::If(IfExpression { else_blk, .. }) => {
+            Spanned { node: If(IfExpression { else_blk, .. }), .. } => {
                 assert!(else_blk.is_none());
             }
         );
@@ -112,7 +131,7 @@ mod test {
             } else {
                 44
             }"#).unwrap(),
-            Expression::If(..) => {
+            Spanned { node: If(..), .. } => {
                 // TODO
             }
         );
@@ -123,7 +142,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, r#"loop {}"#).unwrap(),
-            Expression::Loop(..) => {
+            Spanned { node: Loop(..), .. } => {
                 // TODO
             }
         );
@@ -134,7 +153,7 @@ mod test {
         let mut arena = ExprArena::new();
         assert_pat!(
             Expression::from_str(&mut arena, r#"loop { break }"#).unwrap(),
-            Expression::Loop(..) => {
+            Spanned { node: Loop(..), .. } => {
                 // TODO
             }
         );

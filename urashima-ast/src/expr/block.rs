@@ -1,9 +1,10 @@
 use super::{ExprArena, Expression};
 use crate::{
     error::Fallible,
+    find::Find,
     parser::{Pairs, Parse, Rule},
     print::{self, Print},
-    span::Spanned,
+    span::{Spanned, Position, Span},
     statement::{impls, Statement},
 };
 
@@ -90,6 +91,16 @@ impl Print for BlockExpression {
         })?;
         f.write_str("}")?;
         Ok(())
+    }
+}
+
+impl Find for BlockExpression {
+    fn find_span(&self, pos: Position, arena: &ExprArena) -> Option<Span> {
+        log::debug!("find_span(BlockExpression)");
+        let i = self.statements.binary_search_by(|s| {
+            s.span.cmp_pos(&pos)
+        }).ok()?;
+        self.statements[i].find_span(pos, arena)
     }
 }
 

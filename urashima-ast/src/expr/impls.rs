@@ -159,10 +159,7 @@ impl Parse for Expression {
                 let mut arena = cell.borrow_mut();
                 let left = left?;
                 let right = right?;
-                let span = Span {
-                    start: left.span.start,
-                    end: right.span.end,
-                };
+                let span = Span::enclosing(left.span, right.span);
                 Ok(Spanned::new(
                     span,
                     Expression::Infix(
@@ -182,8 +179,9 @@ fn parse_operand_expression(
     span: pest::Span<'_>,
     mut pairs: Pairs<'_>,
 ) -> Fallible<Spanned<Expression>> {
-    let expr: Expression = if let Some(head) = pairs.next() {
-        match head.as_rule() {
+    let mut expr = if let Some(head) = pairs.next() {
+        let span = head.as_span();
+        let e = match head.as_rule() {
             Rule::boolean => match head.as_str() {
                 "false" => Expression::False,
                 "true" => Expression::True,
@@ -225,30 +223,24 @@ fn parse_operand_expression(
             _ => {
                 return Err(Error::unimplemented());
             }
-        }
+        };
+        Spanned::new(&span, e)
     } else {
         unreachable!();
     };
-    let mut expr = Spanned::new(&span, expr);
     for rest in pairs {
         match rest.as_rule() {
             Rule::call_arguments => {
                 let span = Span::from(&rest.as_span());
                 let args = Spanned::new(span, parse_call_arguments(arena, rest.into_inner())?);
-                let span = Span {
-                    start: expr.span.start,
-                    end: span.end,
-                };
+                let span = Span::enclosing(expr.span, span);
                 let node = Expression::call(arena.insert(expr), args);
                 expr = Spanned::new(span, node);
             }
             Rule::method_call => {
                 let end_pos = rest.as_span().end_pos();
                 let (method, args) = parse_method_call(&mut *arena, rest.into_inner())?;
-                let span = Span {
-                    start: expr.span.start,
-                    end: Position::from(&end_pos),
-                };
+                let span = Span::new(expr.span.start(), Position::from(&end_pos));
                 let node = Expression::invoke(arena.insert(expr), method, args);
                 expr = Spanned::new(span, node);
             }
@@ -347,7 +339,7 @@ mod test {
             Expression::from_str(&mut arena, "fn (a) { a + 1 }").unwrap(),
             Expression::Fn(FunctionExpression { parameters, body, .. }) => {
                 assert_eq!(parameters.len(), 1);
-                assert_eq!(parameters, vec![Parameter::from("a")]);
+                assert_eq!(&parameters[0].name(), "a");
                 assert_eq!(body.statements().len(), 0);
             }
         );

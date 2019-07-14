@@ -9,7 +9,9 @@ name = "naru"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+cstr_core = "0.1.2"
 guard = "0.5"
+libc = "0.2.58"
 urashima = { path = ".." }
 
 [build-dependencies]
